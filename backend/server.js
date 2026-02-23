@@ -1,54 +1,52 @@
 require('dotenv').config()
-const fastify = require('fastify')
-const cors = require('@fastify/cors')
+const express = require('express')
+const cors = require('cors')
 const { createPool, closePool } = require('./config/database')
 const { initializeFirebase } = require('./config/firebase')
 const projectsRoutes = require('./routes/projects')
 const trustedBrandsRoutes = require('./routes/trustedBrands')
 const configRoutes = require('./routes/config')
 
-const app = fastify({ 
-  bodyLimit: 52428800, // 50MB
-  logger: {
-    level: process.env.LOG_LEVEL || 'info',
-    transport: {
-      target: 'pino-pretty',
-      options: {
-        colorize: true,
-        translateTime: 'SYS:standard',
-        ignore: 'pid,hostname'
-      }
-    }
-  }
-})
+const app = express()
 
-// Register CORS
-app.register(cors, {
+// Middleware
+app.use(cors({
   origin: process.env.CORS_ORIGIN || '*',
   credentials: true
-})
+}))
+
+app.use(express.json({ limit: '50mb' }))
+app.use(express.urlencoded({ extended: true, limit: '50mb' }))
 
 // Health Check
-app.get('/health', async (request, reply) => {
-  return { 
+app.get('/health', (req, res) => {
+  res.json({ 
     status: 'ok', 
     message: 'ByLoa Backend is running',
     timestamp: new Date().toISOString()
-  }
+  })
 })
 
 // Register routes
-app.register(projectsRoutes)
-app.register(trustedBrandsRoutes)
-app.register(configRoutes)
+app.use('/api', projectsRoutes)
+app.use('/api', trustedBrandsRoutes)
+app.use('/api', configRoutes)
 
 // Error handler
-app.setErrorHandler((error, request, reply) => {
-  app.log.error(error)
-  reply.status(500).send({ 
+app.use((error, req, res, next) => {
+  console.error('Error:', error.message)
+  res.status(500).json({ 
     success: false, 
     error: 'Internal server error',
     message: error.message 
+  })
+})
+
+// 404 handler
+app.use((req, res) => {
+  res.status(404).json({ 
+    success: false, 
+    error: 'Not found' 
   })
 })
 
@@ -56,7 +54,6 @@ app.setErrorHandler((error, request, reply) => {
 const closeGracefully = async (signal) => {
   console.log(`\n${signal} received, closing gracefully...`)
   await closePool()
-  await app.close()
   process.exit(0)
 }
 
@@ -71,16 +68,16 @@ const start = async () => {
     
     initializeFirebase()
     
-    await app.listen({ 
-      port: process.env.PORT || 3000, 
-      host: process.env.HOST || '0.0.0.0' 
-    })
+    const port = process.env.PORT || 3000
+    const host = process.env.HOST || '0.0.0.0'
     
-    console.log(`🚀 ByLoa Backend running`)
-    console.log(`📍 http://${process.env.HOST || 'localhost'}:${process.env.PORT || 3000}`)
-    console.log(`🏥 Health check: http://${process.env.HOST || 'localhost'}:${process.env.PORT || 3000}/health`)
+    app.listen(port, host, () => {
+      console.log(`🚀 ByLoa Backend running`)
+      console.log(`📍 http://${host === '0.0.0.0' ? 'localhost' : host}:${port}`)
+      console.log(`🏥 Health check: http://${host === '0.0.0.0' ? 'localhost' : host}:${port}/health`)
+    })
   } catch (err) {
-    app.log.error(err)
+    console.error('❌ Startup error:', err.message)
     process.exit(1)
   }
 }

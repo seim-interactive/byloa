@@ -92,7 +92,7 @@
 
       <!-- Logo (shown when menu is open) -->
       <img 
-        src="/logotipos_reducciónv2 negativo.png"
+        src="/logotipos_reduccionv2 negativo.png"
         alt="Close menu"
         :class="['w-12 h-auto absolute transition-all duration-500', {
           'opacity-100 rotate-0': isMenuOpen,

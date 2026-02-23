@@ -6,6 +6,7 @@ import {
   signOut,
   onAuthStateChanged
 } from '../lib/firebase'
+import { apiURL, API_ENDPOINTS } from '../lib/config'
 
 const auth = getAuth()
 
@@ -18,7 +19,7 @@ let authInitialized = false
 // Get admin emails from environment or backend
 const getAdminEmails = async () => {
   try {
-    const response = await fetch('http://localhost:3000/api/config/admin-email', {
+    const response = await fetch(apiURL(API_ENDPOINTS.ADMIN_EMAIL), {
       method: 'GET',
       headers: { 'Content-Type': 'application/json' }
     })

@@ -1,4 +1,5 @@
 import { ref } from 'vue'
+import { apiURL, API_ENDPOINTS } from '../lib/config'
 
 export const projects = ref([])
 export const isLoading = ref(false)
@@ -8,7 +9,7 @@ export const fetchProjects = async () => {
   isLoading.value = true
   error.value = null
   try {
-    const response = await fetch('http://localhost:3000/api/projects')
+    const response = await fetch(apiURL(API_ENDPOINTS.PROJECTS))
     const result = await response.json()
     if (result.success) {
       projects.value = result.data

@@ -521,6 +521,7 @@ import gsap from 'gsap'
 import { useToast } from 'vue-toastification'
 import { useAuth } from '../composables/useAuth'
 import { projects, updateProject, deleteProject as deleteFromStore, fetchProjects, isLoading, error } from '../store/projects'
+import { apiURL, API_ENDPOINTS } from '../lib/config'
 const projectsSection = ref(null)
 const brandsSection = ref(null)
 
@@ -575,7 +576,7 @@ const brandFormData = ref({
 // Cargar marcas confiables
 const fetchTrustedBrands = async () => {
   try {
-    const response = await fetch('http://localhost:3000/api/trusted-brands')
+    const response = await fetch(apiURL(API_ENDPOINTS.TRUSTED_BRANDS))
     const result = await response.json()
     if (result.success) {
       trustedBrands.value = result.data
@@ -616,7 +617,7 @@ const handleBrandLogoUpload = (e) => {
 const uploadMediaToFirebase = async (dataUrl, type, fileName) => {
   try {
     isUploading.value = true
-    const response = await fetch('http://localhost:3000/api/upload', {
+    const response = await fetch(apiURL(API_ENDPOINTS.UPLOAD), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ dataUrl, type, fileName })
@@ -638,7 +639,7 @@ const uploadMediaToFirebase = async (dataUrl, type, fileName) => {
 const uploadBrandLogoToFirebase = async (dataUrl, fileName) => {
   try {
     isUploadingBrand.value = true
-    const response = await fetch('http://localhost:3000/api/trusted-brands/upload', {
+    const response = await fetch(apiURL(API_ENDPOINTS.BRAND_UPLOAD), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ dataUrl, fileName })
@@ -684,7 +685,7 @@ const saveProject = async () => {
     if (editingIdx.value !== null) {
       // Actualizar proyecto
       const projectId = projects.value[editingIdx.value].id
-      const response = await fetch(`http://localhost:3000/api/projects/${projectId}`, {
+      const response = await fetch(apiURL(API_ENDPOINTS.PROJECT(projectId)), {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -699,7 +700,7 @@ const saveProject = async () => {
       }
     } else {
       // Crear proyecto
-      const response = await fetch('http://localhost:3000/api/projects', {
+      const response = await fetch(apiURL(API_ENDPOINTS.PROJECTS), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -745,7 +746,7 @@ const saveBrand = async () => {
     if (editingBrandIdx.value !== null) {
       // Actualizar marca
       const brandId = trustedBrands.value[editingBrandIdx.value].id
-      const response = await fetch(`http://localhost:3000/api/trusted-brands/${brandId}`, {
+      const response = await fetch(apiURL(API_ENDPOINTS.TRUSTED_BRAND(brandId)), {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -760,7 +761,7 @@ const saveBrand = async () => {
       }
     } else {
       // Crear marca
-      const response = await fetch('http://localhost:3000/api/trusted-brands', {
+      const response = await fetch(apiURL(API_ENDPOINTS.TRUSTED_BRANDS), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -812,7 +813,7 @@ const confirmDelete = async () => {
   const idx = deleteConfirmIdx.value
   try {
     const projectId = projects.value[idx].id
-    const response = await fetch(`http://localhost:3000/api/projects/${projectId}`, {
+    const response = await fetch(apiURL(API_ENDPOINTS.PROJECT(projectId)), {
       method: 'DELETE'
     })
 
@@ -836,7 +837,7 @@ const confirmDeleteBrand = async () => {
   const idx = deleteBrandIdx.value
   try {
     const brandId = trustedBrands.value[idx].id
-    const response = await fetch(`http://localhost:3000/api/trusted-brands/${brandId}`, {
+    const response = await fetch(apiURL(API_ENDPOINTS.TRUSTED_BRAND(brandId)), {
       method: 'DELETE'
     })
 

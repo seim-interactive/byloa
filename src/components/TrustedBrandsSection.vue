@@ -86,12 +86,13 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { Marquee } from '@/components/ui/marquee'
+import { apiURL, API_ENDPOINTS } from '@/lib/config'
 
 const brands = ref([])
 
 const fetchTrustedBrands = async () => {
   try {
-    const response = await fetch('http://localhost:3000/api/trusted-brands')
+    const response = await fetch(apiURL(API_ENDPOINTS.TRUSTED_BRANDS))
     const result = await response.json()
     if (result.success) {
       brands.value = result.data.map(brand => ({
