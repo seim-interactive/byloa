@@ -9,7 +9,7 @@
         <!-- Header -->
         <div class="text-center mb-12">
           <img
-            src="/public/logotipos_logotipodescriptorv1 negativo.png"
+            src="/logotipos_logotipodescriptorv1 negativo.png"
             alt="ByLoa"
             class="h-12 w-auto object-contain mx-auto mb-8"
           />

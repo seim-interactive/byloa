@@ -1,20 +1,177 @@
 <!doctype html>
-<html lang="es">
+<html lang="es-AR">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/public/logotipos_reduccionv1 negativo.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    
-    <!-- Brand Typography -->
-    <!-- NOTE: COOLVETICA font should be self-hosted or installed locally -->
-    <!-- Cambria is imported via CSS in style.css -->
-    <!-- Blink Script should be added when available -->
-    <link href="https://fonts.googleapis.com/css2?family=Cambria:ital@0;1&display=swap" rel="stylesheet">
-    
-    <title>byloa</title>
+
+    <!-- Resultado de búsqueda: título (~50 caracteres) y descripción (~155) -->
+    <title>ByLoa · Agencia de marketing digital en Rosario</title>
+    <meta
+      name="description"
+      content="Agencia de marketing digital en Rosario. Estrategia, contenido y campañas en Meta y Google Ads para marcas que quieren vender mejor. Redes, branding y webs."
+    />
+    <link rel="canonical" href="https://byloa.agency/" />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+    <meta name="author" content="ByLoa Agency" />
+    <meta name="geo.region" content="AR-S" />
+    <meta name="geo.placename" content="Rosario" />
+    <meta name="theme-color" content="#050308" />
+    <meta name="color-scheme" content="dark light" />
+
+    <!-- Tema antes de pintar: si se aplicara desde Vue, quien eligió claro
+         vería un destello oscuro en cada carga. Login y panel van siempre en
+         oscuro. Por defecto, oscuro. -->
+    <script>
+      ;(function () {
+        var theme = 'dark'
+        try {
+          var saved = localStorage.getItem('byloa-theme')
+          if (saved === 'light' || saved === 'dark') theme = saved
+        } catch (e) {}
+        if (/^\/(login|admin)/.test(location.pathname)) theme = 'dark'
+        document.documentElement.dataset.theme = theme
+        if (theme === 'light') {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#f5f2ed')
+        }
+      })()
+    </script>
+
+    <!-- Íconos. Google muestra el favicon recortado en círculo sobre blanco:
+         por eso la marca va sobre fondo oscuro sólido y no transparente. -->
+    <link rel="icon" href="/favicon.ico" sizes="48x48" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+
+    <!-- Al compartir el link (WhatsApp, LinkedIn, Facebook, X) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="ByLoa" />
+    <meta property="og:locale" content="es_AR" />
+    <meta property="og:url" content="https://byloa.agency/" />
+    <meta property="og:title" content="ByLoa · Agencia de marketing digital en Rosario" />
+    <meta
+      property="og:description"
+      content="Estrategia, contenido y campañas para marcas que quieren vender mejor. Redes sociales, publicidad digital, branding y webs."
+    />
+    <meta property="og:image" content="https://byloa.agency/og-image.jpg" />
+    <meta property="og:image:type" content="image/jpeg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="ByLoa: hacemos crecer tu marca con contenido y campañas." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="ByLoa · Agencia de marketing digital en Rosario" />
+    <meta
+      name="twitter:description"
+      content="Estrategia, contenido y campañas para marcas que quieren vender mejor."
+    />
+    <meta name="twitter:image" content="https://byloa.agency/og-image.jpg" />
+
+    <!-- La API sirve proyectos y marcas: abrir la conexión antes ahorra tiempo -->
+    <link rel="preconnect" href="https://api.byloa.agency" crossorigin />
+    <link rel="preload" href="/fonts/Coolvetica%20Rg.otf" as="font" type="font/otf" crossorigin />
+
+    <!-- Datos estructurados. `WebSite.name` es lo que Google usa para mostrar
+         "ByLoa" arriba del resultado en lugar del dominio. -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "WebSite",
+            "@id": "https://byloa.agency/#website",
+            "url": "https://byloa.agency/",
+            "name": "ByLoa",
+            "alternateName": ["ByLoa Agency", "byloa.agency"],
+            "inLanguage": "es-AR",
+            "publisher": { "@id": "https://byloa.agency/#organization" }
+          },
+          {
+            "@type": ["Organization", "ProfessionalService"],
+            "@id": "https://byloa.agency/#organization",
+            "name": "ByLoa",
+            "legalName": "ByLoa Agency",
+            "url": "https://byloa.agency/",
+            "logo": {
+              "@type": "ImageObject",
+              "url": "https://byloa.agency/icon-512.png",
+              "width": 512,
+              "height": 512
+            },
+            "image": "https://byloa.agency/og-image.jpg",
+            "description": "Agencia de marketing digital en Rosario. Estrategia, contenido y campañas en Meta y Google Ads para marcas que quieren vender mejor.",
+            "email": "info@byloa.agency",
+            "telephone": "+54 9 341 779 7688",
+            "priceRange": "$$",
+            "address": {
+              "@type": "PostalAddress",
+              "addressLocality": "Rosario",
+              "addressRegion": "Santa Fe",
+              "addressCountry": "AR"
+            },
+            "areaServed": [
+              { "@type": "City", "name": "Rosario" },
+              { "@type": "Country", "name": "Argentina" }
+            ],
+            "openingHoursSpecification": {
+              "@type": "OpeningHoursSpecification",
+              "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+              "opens": "09:00",
+              "closes": "18:00"
+            },
+            "contactPoint": {
+              "@type": "ContactPoint",
+              "contactType": "sales",
+              "email": "info@byloa.agency",
+              "telephone": "+54 9 341 779 7688",
+              "availableLanguage": ["es"]
+            },
+            "sameAs": [
+              "https://www.instagram.com/byloa.agency/",
+              "https://www.facebook.com/people/Byloa-Agency/61585933823414/",
+              "https://www.linkedin.com/in/byloa-agency-4810652a9/"
+            ],
+            "knowsAbout": [
+              "Marketing digital",
+              "Gestión de redes sociales",
+              "Publicidad en Meta Ads",
+              "Publicidad en Google Ads",
+              "Branding",
+              "Diseño web"
+            ],
+            "hasOfferCatalog": {
+              "@type": "OfferCatalog",
+              "name": "Servicios",
+              "itemListElement": [
+                { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Gestión de redes sociales", "description": "Plan mensual, piezas y community management." } },
+                { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Creación de contenido", "description": "Reels, fotos y piezas con dirección creativa." } },
+                { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Publicidad digital", "description": "Campañas en Meta Ads y Google Ads con objetivo, audiencia y presupuesto claros." } },
+                { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Branding y comunicación", "description": "Tono, mensaje e identidad visual de la marca." } },
+                { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Web y landings", "description": "Sitios y landings orientados a generar consultas." } }
+              ]
+            }
+          }
+        ]
+      }
+    </script>
   </head>
   <body>
     <div id="app"></div>
+    <!-- Para quien no ejecuta JavaScript (algunos rastreadores y lectores):
+         lo esencial de la agencia en texto plano. -->
+    <noscript>
+      <h1>ByLoa · Agencia de marketing digital en Rosario</h1>
+      <p>Hacemos crecer tu marca con contenido y campañas. Estrategia, contenido y publicidad digital: un plan claro para cada canal, medible y sostenido en el tiempo.</p>
+      <h2>Servicios</h2>
+      <ul>
+        <li>Gestión de redes sociales</li>
+        <li>Creación de contenido</li>
+        <li>Publicidad digital en Meta Ads y Google Ads</li>
+        <li>Branding y comunicación</li>
+        <li>Web y landings</li>
+      </ul>
+      <p>Contacto: <a href="mailto:info@byloa.agency">info@byloa.agency</a> · <a href="https://wa.me/5493417797688">+54 9 341 779 7688</a> · Rosario, Argentina.</p>
+    </noscript>
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>

@@ -1,17 +1,20 @@
 <template>
-  <footer ref="containerRef" class="bg-[#0A0A0A] text-white pt-20 sm:pt-28 pb-0 relative z-10">
+  <footer ref="containerRef" class="text-(--c-fg) pt-20 sm:pt-28 pb-0 relative z-10 border-t border-(--c-line)">
     <div class="container-lg mx-auto px-4 sm:px-6">
       <!-- Main Footer Content -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-8 sm:gap-16 pb-16 border-b border-white/10">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-8 sm:gap-16 pb-16 border-b border-(--c-line)">
         <!-- Brand Section -->
         <div ref="brandRef" class="opacity-0 col-span-1 md:col-span-1">
           <img
               src="/logotipos_logotipodescriptorv2 negativo.png"
-              alt="byloa.agency"
-              class="h-20 w-auto mb-7"
+              alt="ByLoa Agency"
+              width="1833"
+              height="861"
+              loading="lazy"
+              class="logo-adapt h-20 w-auto mb-7"
             />
-          <p class="text-sm text-white/60 leading-relaxed">
-            Estrategia, contenido y publicidad digital para marcas que crecen.
+          <p class="text-sm text-(--c-muted) leading-relaxed">
+            Estrategia, contenido y publicidad para marcas que quieren crecer. Rosario, Argentina.
           </p>
         </div>
 
@@ -19,22 +22,22 @@
         <div class="grid grid-cols-2 md:contents gap-8">
           <!-- Navigation -->
           <div ref="navRef" class="opacity-0">
-            <h3 class="text-sm font-semibold uppercase tracking-wider text-white mb-6">
+            <h3 class="text-sm font-semibold uppercase tracking-wider text-(--c-fg) mb-6">
               Navegación
             </h3>
             <ul class="space-y-3">
               <li>
                 <a
-                  href="#about"
-                  class="text-sm text-white/60 hover:text-white transition-colors duration-200"
+                  href="#home"
+                  class="text-sm text-(--c-muted) hover:text-(--c-fg) transition-colors duration-200"
                 >
-                  Nosotros
+                  Home
                 </a>
               </li>
               <li>
                 <a
                   href="#services"
-                  class="text-sm text-white/60 hover:text-white transition-colors duration-200"
+                  class="text-sm text-(--c-muted) hover:text-(--c-fg) transition-colors duration-200"
                 >
                   Servicios
                 </a>
@@ -42,7 +45,7 @@
               <li>
                 <a
                   href="#process"
-                  class="text-sm text-white/60 hover:text-white transition-colors duration-200"
+                  class="text-sm text-(--c-muted) hover:text-(--c-fg) transition-colors duration-200"
                 >
                   Proceso
                 </a>
@@ -50,7 +53,7 @@
               <li>
                 <a
                   href="#contact"
-                  class="text-sm text-white/60 hover:text-white transition-colors duration-200"
+                  class="text-sm text-(--c-muted) hover:text-(--c-fg) transition-colors duration-200"
                 >
                   Contacto
                 </a>
@@ -60,13 +63,13 @@
 
           <!-- Social & Contact -->
           <div ref="socialRef" class="opacity-0">
-            <h3 class="text-sm font-semibold uppercase tracking-wider text-white mb-6">
+            <h3 class="text-sm font-semibold uppercase tracking-wider text-(--c-fg) mb-6">
               Conecta
             </h3>
             <div class="flex flex-col gap-4 md:flex-row md:gap-6">
               <a
                 href="https://www.instagram.com/byloa.agency/"
-                class="text-white/60 hover:text-white transition-colors duration-200 flex items-center gap-2 md:gap-0"
+                class="text-(--c-muted) hover:text-(--c-fg) transition-colors duration-200 flex items-center gap-2 md:gap-0"
                 aria-label="Instagram"
                 target="_blank"
                 rel="noopener noreferrer"
@@ -76,7 +79,7 @@
               </a>
               <a
                 href="https://wa.me/5493417797688?text=Hola%20me%20gustaría%20contactarlos"
-                class="text-white/60 hover:text-white transition-colors duration-200 flex items-center gap-2 md:gap-0"
+                class="text-(--c-muted) hover:text-(--c-fg) transition-colors duration-200 flex items-center gap-2 md:gap-0"
                 aria-label="Whatsapp"
                 target="_blank"
                 rel="noopener noreferrer"
@@ -85,8 +88,8 @@
                <span class="text-sm md:hidden">Whatsapp</span>
               </a>
               <a
-                href="mailto:loanaaguirre@byloa.agency"
-                class="text-white/60 hover:text-white transition-colors duration-200 flex items-center gap-2 md:gap-0"
+                href="mailto:info@byloa.agency"
+                class="text-(--c-muted) hover:text-(--c-fg) transition-colors duration-200 flex items-center gap-2 md:gap-0"
                 aria-label="Email"
                 target="_blank"
                 rel="noopener noreferrer"
@@ -96,8 +99,8 @@
               </a>
               <a
                 href="https://www.linkedin.com/in/byloa-agency-4810652a9/"
-                class="text-white/60 hover:text-white transition-colors duration-200 flex items-center gap-2 md:gap-0"
-                aria-label="Email"
+                class="text-(--c-muted) hover:text-(--c-fg) transition-colors duration-200 flex items-center gap-2 md:gap-0"
+                aria-label="LinkedIn"
                 target="_blank"
                 rel="noopener noreferrer"
               >
@@ -106,8 +109,8 @@
               </a>
               <a
                 href="https://www.facebook.com/people/Byloa-Agency/61585933823414/"
-                class="text-white/60 hover:text-white transition-colors duration-200 flex items-center gap-2 md:gap-0"
-                aria-label="Email"
+                class="text-(--c-muted) hover:text-(--c-fg) transition-colors duration-200 flex items-center gap-2 md:gap-0"
+                aria-label="Facebook"
                 target="_blank"
                 rel="noopener noreferrer"
               >
@@ -122,21 +125,24 @@
       <!-- Footer Bottom Bar -->
       <div ref="bottomRef" class="py-8 opacity-0 flex flex-col md:flex-row items-center justify-between gap-6">
         <!-- Copyright -->
-        <p class="text-xs text-white/40">
+        <p class="text-xs text-(--c-faint)">
           © 2026 byloa.agency. Todos los derechos reservados.
         </p>
 
         <!-- Logo (placeholder for asset) -->
         <div class="h-6 flex items-center">
           <a
-            href="https://seiminteractive.io/"
+            href="https://web.seiminteractive.io"
             target="_blank"
             rel="noopener noreferrer"
             class="h-full flex items-center"
           >
             <img
-              src="/public/SeimFooter.jpeg"
-              alt="Partner Logo"
+              src="/SeimFooter.jpeg"
+              alt="Seim Interactive"
+              width="4500"
+              height="837"
+              loading="lazy"
               class="h-full w-auto object-contain rounded-md"
             />
           </a>

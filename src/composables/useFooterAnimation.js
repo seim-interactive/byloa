@@ -8,9 +8,7 @@ export function useFooterAnimation(containerRef, elements) {
   let timeline = null
 
   const createAnimation = () => {
-    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-
-    if (prefersReducedMotion || !containerRef?.value) {
+    if (!containerRef?.value) {
       gsap.set([
         elements.brand?.value,
         elements.nav?.value,

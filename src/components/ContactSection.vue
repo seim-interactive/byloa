@@ -1,448 +1,441 @@
+<script setup>
+/**
+ * Contacto.
+ *
+ * La card de la derecha ocupa las dos filas de la grilla (`grid-row: 1 / -1`),
+ * así su borde inferior cae exactamente sobre el de la card de abajo. Antes
+ * era una columna aparte con `min-height: 100%`, que no resuelve contra un
+ * padre sin alto: la card terminaba donde terminaba su contenido y quedaba
+ * desalineada.
+ */
+import { ref } from 'vue'
+import { gsap, splitMasked } from '@/animations/gsap'
+import { useGsap } from '@/composables/useGsap'
+
+const WHATSAPP = 'https://wa.me/5493417797688'
+
+const root = ref(null)
+
+useGsap(root, () => {
+  const title = splitMasked('.contact__title')
+  gsap
+    .timeline({
+      scrollTrigger: { trigger: root.value, start: 'top 72%', once: true },
+      defaults: { ease: 'expo.out' },
+    })
+    .set('.contact__head', { opacity: 1 })
+    .from('.contact__head .eyebrow', { opacity: 0, y: 18, duration: 1 }, 0)
+    .from(title.lines, { yPercent: 115, duration: 1.2, stagger: 0.07 }, 0.1)
+    .fromTo('.card', { opacity: 0, y: 48 }, { opacity: 1, y: 0, duration: 1.2, stagger: 0.1 }, 0.3)
+})
+</script>
+
 <template>
-  <section id="contact" class="relative w-full min-h-screen bg-gradient-to-b from-black via-black/40 to-[#0a0a0a] overflow-hidden flex items-center justify-center py-12 sm:py-20">
-    <!-- Decorative Background Elements -->
-    <div class="absolute inset-0 pointer-events-none">
-      <div class="absolute top-0 right-0 w-96 h-96 bg-linear-to-br from-white/5 to-transparent rounded-full blur-3xl -mr-32 -mt-32"></div>
-      <div class="absolute bottom-0 left-0 w-80 h-80 bg-linear-to-tr from-orange-500/5 to-transparent rounded-full blur-3xl -ml-40 -mb-40"></div>
-    </div>
+  <section id="contact" ref="root" class="contact">
+    <header class="contact__head">
+      <p class="eyebrow">Contacto</p>
+      <h2 class="section-title contact__title">Contanos el proyecto y <em>armamos el próximo paso</em>.</h2>
+    </header>
 
-    <!-- Main Container -->
-    <div class="relative z-10 container-lg mx-auto px-4 sm:px-6 w-full max-w-6xl">
-      <div class="grid grid-cols-1 lg:grid-cols-5 gap-6 lg:gap-8 items-stretch">
-
-        <!-- LEFT COLUMN -->
-        <div class="lg:col-span-3 flex flex-col gap-6">
-          <!-- Top Card: Main Glass Card -->
-          <div
-            ref="cardLeftTopRef"
-            class="card-glass rounded-[32px] p-8 sm:p-10 flex flex-col min-h-[380px] relative overflow-hidden"
-          >
-            <!-- Inner glow -->
-            <div class="card-inner-glow"></div>
-            
-            <!-- Header -->
-            <div class="flex items-center justify-between mb-8 relative z-10">
-              <span class="text-sm text-gray-700 font-light tracking-wide">BYLOA Agency</span>
-              <span class="text-sm text-gray-600 font-medium transition-colors">Contacto</span>
-            </div>
-
-            <!-- Title -->
-            <div class="relative z-10 mb-6">
-              <h2 class="text-2xl sm:text-3xl font-light text-gray-900 tracking-tight">
-                Escribinos
-              </h2>
-            </div>
-
-            <!-- Social Button -->
-            <div class="relative z-10 mb-8 flex gap-4 justify-center sm:justify-start">
-              <a 
-                href="https://instagram.com/byloa.agency" 
-                target="_blank"
-                class="inline-flex items-center gap-2 px-5 py-2.5 bg-gray-900 hover:bg-gray-800 text-white text-xs font-medium rounded-full transition-all duration-300"
-              >
-                <i class="bi bi-instagram text-sm"></i>
-                <span>Instagram</span>
-              </a>
-              <a
-                href="https://wa.me/5493417797688" 
-                target="_blank"
-                class="inline-flex items-center gap-2 px-5 py-2.5 bg-gray-900 hover:bg-gray-800 text-white text-xs font-medium rounded-full transition-all duration-300"
-              >
-                <i class="bi bi-whatsapp  text-sm"></i>
-                <span>WhatsApp</span>
-              </a>
-            </div>
-
-            <!-- Contact Buttons -->
-            <div class="relative z-10 space-y-4 mb-6">
-              <!-- Email Button -->
-              <a 
-                href="mailto:loanaaguirre@byloa.agency"
-                class="contact-btn group"
-              >
-                <div class="contact-btn-icon">
-                  <i class="bi bi-envelope text-sm"></i>
-                </div>
-                <span class="contact-btn-text">loanaaguirre@byloa.agency</span>
-                <span class="contact-btn-action group-hover:bg-gray-900 group-hover:text-white">
-                  Enviar email
-                </span>
-              </a>
-              
-              <!-- WhatsApp Button -->
-              <a 
-                href="https://wa.me/5493417797688"
-                target="_blank"
-                class="contact-btn group"
-              >
-                <div class="contact-btn-icon">
-                  <i class="bi bi-whatsapp  text-sm"></i>
-                </div>
-                <span class="contact-btn-text">+54 9 341 779 7688</span>
-                <span class="contact-btn-action group-hover:bg-green-600 group-hover:text-white">
-                  Escribir
-                </span>
-              </a>
-            </div>
-
-            <!-- Legal Text + CTA Button -->
-            <div class="relative z-10 flex items-end justify-between mt-auto">
-              <p class="text-[10px] text-gray-500 leading-relaxed max-w-[200px]">
-                Respondemos en menos de 24 horas.<br/>
-                Consultá sin compromiso.
-              </p>
-              <a 
-                href="https://wa.me/5493417797688"
-                target="_blank"
-                class="cta-circle"
-              >
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                </svg>
-              </a>
-            </div>
-
-            <!-- Bottom Text -->
-            <p class="text-[10px] text-gray-400 text-center mt-6 relative z-10 tracking-wide">
-              Comunicación profesional para tu marca
-            </p>
-          </div>
-
-          <!-- Bottom Card: New Project -->
-          <div
-            ref="cardLeftBottomRef"
-            class="card-dark rounded-[32px] p-8 sm:p-10 flex flex-col justify-between min-h-[180px] relative overflow-hidden"
-          >
-            <div class="relative z-10">
-              <span class="text-xl sm:text-2xl font-light text-white tracking-tight">Nuevo proyecto</span>
-              <p class="text-sm text-white/60 font-light mt-1">Estrategia personalizada</p>
-            </div>
-            
-            <div class="relative z-10 flex items-center justify-between mt-6">
-              <a href="https://wa.me/5493417797688" target="_blank" class="text-sm text-white/80 font-medium tracking-wide hover:text-gray-400 transition-colors">Descubrir</a>
-            </div>
-          </div>
+    <div class="contact__grid">
+      <!-- Canales directos -->
+      <article class="card card--main glass">
+        <div class="card__top">
+          <h3 class="card__title">Escribinos</h3>
+          <p class="card__note">Respondemos en menos de 24 horas.</p>
         </div>
 
-        <!-- RIGHT CARD: Event Style with Image Background -->
-        <div class="lg:col-span-2">
-          <div
-            ref="cardRightRef"
-            class="card-event rounded-[32px] overflow-hidden relative min-h-full flex flex-col"
-          >
-            <!-- Background Image -->
-            <div class="card-bg-image"></div>
-            
-            <!-- Glass Overlay -->
-            <div class="card-glass-overlay"></div>
-            
-            <!-- Gradient Bubble -->
-            <div class="gradient-bubble"></div>
-            
-            <!-- Content -->
-            <div class="relative z-10 flex-1 flex flex-col justify-start p-8 sm:p-10">
-              <!-- Top: Date Style -->
-              <div>
-                <div class="flex items-start justify-between mb-8">
-                  <div>
-                    <span class="block text-5xl sm:text-6xl font-light text-white tracking-tight leading-none">Lun</span>
-                    <span class="block text-5xl sm:text-6xl font-light text-white tracking-tight leading-none mt-1">a Vie</span>
-                  </div>
-                  <div class="text-right">
-                    <span class="block text-xs text-white/70 font-medium tracking-wide">Disponibles</span>
-                    <span class="block text-xs text-white/50 font-light">Nuevos proyectos</span>
-                  </div>
-                </div>
+        <ul class="channels">
+          <li>
+            <a class="channel" href="mailto:info@byloa.agency">
+              <span class="channel__icon"><i class="bi bi-envelope" aria-hidden="true" /></span>
+              <span class="channel__value">info@byloa.agency</span>
+              <span class="channel__action">Enviar email</span>
+            </a>
+          </li>
+          <li>
+            <a class="channel" :href="WHATSAPP" target="_blank" rel="noopener">
+              <span class="channel__icon"><i class="bi bi-whatsapp" aria-hidden="true" /></span>
+              <span class="channel__value">+54 9 341 779 7688</span>
+              <span class="channel__action">Escribir</span>
+            </a>
+          </li>
+          <li>
+            <a class="channel" href="https://instagram.com/byloa.agency" target="_blank" rel="noopener">
+              <span class="channel__icon"><i class="bi bi-instagram" aria-hidden="true" /></span>
+              <span class="channel__value">@byloa.agency</span>
+              <span class="channel__action">Seguir</span>
+            </a>
+          </li>
+        </ul>
+      </article>
 
-                <!-- Time & Location -->
-                <div class="space-y-1 mb-8">
-                  <p class="text-sm text-white/90 font-light">9 AM - 18 PM</p>
-                  <p class="text-sm text-white/70 font-light">Rosario, Argentina</p>
-                  <p class="text-sm text-white/50 font-light">Remoto / Presencial</p>
-                </div>
-              </div>
-            </div>
+      <!-- Arranque de proyecto -->
+      <a class="card card--start glass" :href="WHATSAPP" target="_blank" rel="noopener">
+        <div>
+          <h3 class="card__title">Empezar un proyecto</h3>
+          <p class="card__note">Te proponemos un plan a medida, sin compromiso.</p>
+        </div>
+        <span class="card__arrow" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </span>
+      </a>
 
-            <!-- Footer - Separated -->
-            <div class="relative z-10 flex items-center justify-between p-8 sm:p-10 border-t border-white/20">
-              <span class="text-xs text-white/60 font-medium tracking-widest uppercase">BYLOA</span>
-              <a 
-                href="https://wa.me/5493417797688"
-                target="_blank"
-                class="cta-button"
-              >
-                <span>Agendar</span>
-                <div class="cta-arrow">
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                  </svg>
-                </div>
-              </a>
-            </div>
-          </div>
+      <!-- Disponibilidad: ocupa las dos filas y cierra con la card de abajo -->
+      <article class="card card--aside on-media">
+        <div class="aside__media" aria-hidden="true" />
+
+        <div class="aside__body">
+          <p class="aside__status"><span class="aside__dot" aria-hidden="true" />Disponibles para nuevos proyectos</p>
+          <p class="aside__days">Lun<br />a Vie</p>
+          <dl class="aside__meta">
+            <div><dt>Horario</dt><dd>9 a 18 h</dd></div>
+            <div><dt>Base</dt><dd>Rosario, Argentina</dd></div>
+            <div><dt>Modalidad</dt><dd>Remoto / Presencial</dd></div>
+          </dl>
         </div>
 
-      </div>
+        <footer class="aside__foot">
+          <span class="aside__brand">ByLoa</span>
+          <a class="aside__cta" :href="WHATSAPP" target="_blank" rel="noopener">
+            Agendar
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </a>
+        </footer>
+      </article>
     </div>
   </section>
 </template>
 
-
-<script setup>
-import { ref } from 'vue'
-import { useContactCardsAnimation } from '../composables/useContactCardsAnimation'
-
-// Refs for animation
-const cardLeftTopRef = ref(null)
-const cardLeftBottomRef = ref(null)
-const cardRightRef = ref(null)
-
-// Initialize animations
-useContactCardsAnimation({
-  leftTop: cardLeftTopRef,
-  leftBottom: cardLeftBottomRef,
-  right: cardRightRef
-})
-</script>
-
 <style scoped>
-/* Glass Card */
-.card-glass {
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.85) 0%, rgba(255, 255, 255, 0.7) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.5);
-  box-shadow: 
-    0 8px 32px rgba(0, 0, 0, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.6);
-}
-
-.card-inner-glow {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.8), transparent);
-}
-
-/* Dark Card */
-.card-dark {
-  background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 100%);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-}
-
-/* Event Card - Liquid Glass with Image */
-.card-event {
+.contact {
   position: relative;
-  min-height: 580px;
+  z-index: var(--z-content);
+  display: grid;
+  gap: clamp(2.5rem, 2rem + 3vw, 4rem);
+  padding: var(--section-space) var(--gutter);
 }
 
-.card-bg-image {
-  position: absolute;
-  inset: 0;
-  background-image: url('/I_want_a_2k_202601262319.jpeg');
-  background-size: cover;
-  background-position: center;
-  z-index: 0;
+.contact__head {
+  width: 100%;
+  max-width: 82rem;
+  margin-inline: auto;
+  display: grid;
+  gap: 1.25rem;
+  opacity: 0;
 }
 
-.card-glass-overlay {
+.contact__title {
+  max-width: 20ch;
+}
+
+/* Dos filas: la card de la derecha las cruza enteras. */
+.contact__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: clamp(0.75rem, 0.5rem + 1vw, 1.25rem);
+  width: 100%;
+  max-width: 82rem;
+  margin-inline: auto;
+}
+
+.card {
+  position: relative;
+  border-radius: var(--radius-lg);
+  opacity: 0;
+}
+
+.card--main {
+  grid-column: 1;
+  grid-row: 1;
+  display: grid;
+  align-content: space-between;
+  gap: 2.5rem;
+  padding: clamp(1.75rem, 1.25rem + 2vw, 2.75rem);
+}
+
+.card--start {
+  grid-column: 1;
+  grid-row: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding: clamp(1.5rem, 1.25rem + 1.5vw, 2.25rem) clamp(1.75rem, 1.25rem + 2vw, 2.75rem);
+  transition: border-color 0.5s var(--ease-out);
+}
+
+.card--start:hover {
+  border-color: var(--c-line-strong);
+}
+
+.card--aside {
+  grid-column: 2;
+  grid-row: 1 / -1;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  overflow: hidden;
+  border: 1px solid var(--glass-border);
+}
+
+.card__title {
+  font-family: var(--font-display);
+  font-size: var(--fs-h3);
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+.card__note {
+  margin-top: 0.5rem;
+  color: var(--c-muted);
+  font-size: var(--fs-small);
+  line-height: 1.5;
+}
+
+.card__arrow {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 3rem;
+  height: 3rem;
+  border: 1px solid var(--c-line-strong);
+  border-radius: 50%;
+  color: var(--c-fg);
+  transition:
+    background-color 0.45s var(--ease-out),
+    color 0.45s var(--ease-out);
+}
+
+.card__arrow svg {
+  width: 1.1rem;
+  height: 1.1rem;
+  transition: transform 0.45s var(--ease-out);
+}
+
+.card--start:hover .card__arrow {
+  background: var(--c-fg);
+  color: var(--c-on-fg);
+}
+
+.card--start:hover .card__arrow svg {
+  transform: translateX(3px);
+}
+
+/* ---- Canales ---- */
+
+.channels {
+  display: grid;
+}
+
+.channel {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 0;
+  border-top: 1px solid var(--c-line);
+  color: var(--c-fg);
+}
+
+.channels li:last-child .channel {
+  border-bottom: 1px solid var(--c-line);
+}
+
+.channel__icon {
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border: 1px solid var(--c-line);
+  border-radius: 50%;
+  color: var(--c-muted);
+  font-size: 0.9rem;
+  transition:
+    border-color 0.45s var(--ease-out),
+    color 0.45s var(--ease-out);
+}
+
+.channel__value {
+  font-size: var(--fs-body);
+}
+
+.channel__action {
+  color: var(--c-faint);
+  font-size: var(--fs-micro);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  transition:
+    color 0.45s var(--ease-out),
+    transform 0.45s var(--ease-out);
+}
+
+@media (hover: hover) {
+  .channel:hover .channel__icon {
+    border-color: var(--c-pink);
+    color: var(--c-pink);
+  }
+
+  .channel:hover .channel__action {
+    color: var(--c-fg);
+    transform: translateX(-2px);
+  }
+}
+
+/* ---- Disponibilidad ---- */
+
+.aside__media {
   position: absolute;
   inset: 0;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.15) 0%,
-    rgba(255, 255, 255, 0.05) 50%,
-    rgba(0, 0, 0, 0.2) 100%
-  );
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 32px;
+  background: url('/I_want_a_2k_202601262319.jpeg') center / cover;
+  /* La foto queda como textura detrás del vidrio, no como fondo protagonista. */
+  filter: blur(2px) saturate(1.1);
+  opacity: 0.5;
+}
+
+.card--aside::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgb(5 3 8 / 0.35) 0%, rgb(5 3 8 / 0.8) 100%);
+}
+
+.aside__body,
+.aside__foot {
+  position: relative;
   z-index: 1;
 }
 
-/* Gradient Bubble */
-.gradient-bubble {
-  position: absolute;
-  width: 280px;
-  height: 280px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(245, 168, 85, 0.7) 0%, rgba(242, 139, 75, 0.5) 40%, transparent 70%);
-  top: 30%;
-  right: -80px;
-  opacity: 0.9;
-  pointer-events: none;
-  z-index: 2;
-  filter: blur(20px);
+.aside__body {
+  display: grid;
+  align-content: start;
+  gap: 1.5rem;
+  padding: clamp(1.75rem, 1.25rem + 2vw, 2.75rem);
 }
 
-/* Contact Buttons */
-.contact-btn {
+.aside__status {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 12px;
-  background: rgba(255, 255, 255, 0.6);
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  border-radius: 50px;
-  transition: all 0.3s ease;
-  text-decoration: none;
-  cursor: pointer;
+  gap: 0.6rem;
+  color: var(--c-muted);
+  font-size: var(--fs-micro);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
 }
 
-.contact-btn:hover {
-  background: rgba(255, 255, 255, 0.9);
-  border-color: rgba(0, 0, 0, 0.15);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-}
-
-.contact-btn-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  background: rgba(0, 0, 0, 0.06);
+.aside__dot {
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
-  color: #444;
-  flex-shrink: 0;
-  transition: all 0.3s ease;
+  background: var(--c-pink);
+  animation: contact-pulse 2.4s var(--ease-in-out) infinite;
 }
 
-.contact-btn:hover .contact-btn-icon {
-  background: rgba(0, 0, 0, 0.1);
-  color: #222;
+@keyframes contact-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.4;
+    transform: scale(1.4);
+  }
 }
 
-.contact-btn-text {
-  flex: 1;
-  font-size: 11px;
-  color: #333;
+.aside__days {
+  font-family: var(--font-display);
+  font-size: clamp(2.5rem, 1.5rem + 3vw, 4rem);
   font-weight: 400;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  letter-spacing: -0.03em;
+  line-height: 0.95;
 }
 
-.contact-btn-action {
-  font-size: 10px;
-  color: #555;
-  padding: 5px 10px;
-  background: rgba(0, 0, 0, 0.06);
-  border-radius: 20px;
-  font-weight: 500;
-  transition: all 0.3s ease;
-  flex-shrink: 0;
-  white-space: nowrap;
+.aside__meta {
+  display: grid;
+  gap: 0.75rem;
 }
 
-/* Desktop adjustments */
-@media (min-width: 640px) {
-  .contact-btn {
-    gap: 12px;
-    padding: 12px 14px 12px 16px;
-  }
-  
-  .contact-btn-icon {
-    width: 32px;
-    height: 32px;
-  }
-  
-  .contact-btn-text {
-    font-size: 13px;
-  }
-  
-  .contact-btn-action {
-    font-size: 11px;
-    padding: 6px 14px;
-  }
+.aside__meta > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--c-line);
 }
 
-/* CTA Circle */
-.cta-circle {
+.aside__meta dt {
+  color: var(--c-faint);
+  font-size: var(--fs-micro);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.aside__meta dd {
+  color: var(--c-fg);
+  font-size: var(--fs-small);
+  text-align: right;
+}
+
+.aside__foot {
   display: flex;
   align-items: center;
-  justify-content: center;
-  width: 48px;
-  height: 48px;
-  background: #1a1a1a;
-  border-radius: 50%;
-  color: white;
-  transition: all 0.3s ease;
-  cursor: pointer;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: clamp(1.25rem, 1rem + 1vw, 1.75rem) clamp(1.75rem, 1.25rem + 2vw, 2.75rem);
+  border-top: 1px solid var(--c-line);
 }
 
-.cta-circle:hover {
-  background: #333;
-  transform: translateX(4px);
+.aside__brand {
+  color: var(--c-faint);
+  font-size: var(--fs-micro);
+  font-weight: 600;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
 }
 
-/* Asterisk Icon */
-.asterisk-icon {
-  font-size: 32px;
-  color: rgba(255, 255, 255, 0.5);
-}
-
-/* CTA Button */
-.cta-button {
-  display: flex;
+.aside__cta {
+  display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 12px 10px 20px;
-  background: #1a1a1a;
-  border-radius: 30px;
-  color: white;
-  font-size: 12px;
-  font-weight: 500;
-  transition: all 0.3s ease;
-  cursor: pointer;
-  text-decoration: none;
+  gap: 0.5rem;
+  padding: 0.7rem 1.2rem;
+  border-radius: 999px;
+  background: var(--c-fg);
+  color: var(--c-on-fg);
+  font-size: var(--fs-micro);
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  transition: background-color 0.4s var(--ease-out);
 }
 
-.cta-button:hover {
-  background: #333;
+.aside__cta svg {
+  width: 0.95rem;
+  height: 0.95rem;
+  transition: transform 0.4s var(--ease-out);
 }
 
-.cta-arrow {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  background: rgba(255, 255, 255, 0.15);
-  border-radius: 50%;
-  transition: all 0.3s ease;
+.aside__cta:hover svg {
+  transform: translateX(3px);
 }
 
-.cta-button:hover .cta-arrow {
-  background: rgba(255, 255, 255, 0.25);
-  transform: translateX(2px);
-}
-
-/* Responsive */
-@media (max-width: 1024px) {
-  .card-event {
-    min-height: 480px;
+@media (max-width: 900px) {
+  .contact__grid {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: none;
   }
-  
-  .gradient-bubble {
-    width: 200px;
-    height: 200px;
-    right: -60px;
-    top: 35%;
-  }
-}
 
-@media (max-width: 768px) {
-  .gradient-bubble {
-    width: 160px;
-    height: 160px;
-    right: -40px;
+  .card--main,
+  .card--start,
+  .card--aside {
+    grid-column: 1;
+    grid-row: auto;
   }
 }
 </style>

@@ -1,430 +1,330 @@
-<template>
-  <section ref="sectionRef" class="why-byloa-section">
-    <!-- Gradient Background (identical to Hero) -->
-    <div class="hero-gradient"></div>
-    
-    <!-- Top fade from black -->
-    <div class="top-fade"></div>
-    
-    <!-- Bottom fade to black -->
-    <div class="bottom-fade"></div>
-
-    <!-- Content Container -->
-    <div class="relative z-0 w-full px-8 sm:px-12 lg:px-20">
-      
-      <!-- Hero Row: Title Left + Description Right -->
-      <div ref="heroRef" class="hero-row">
-        <div class="hero-title">
-          <h2 class="title-main">
-            Diseñado para<br />
-            ayudarte a<br />
-            <span class="title-italic">comunicar mejor</span>
-          </h2>
-        </div>
-        <div class="hero-description">
-          <p class="description-text">
-            Nuestro enfoque está pensado para marcas y profesionales que buscan orden, 
-            coherencia y resultados reales en su comunicación digital.
-          </p>
-        </div>
-      </div>
-
-      <!-- Features Row -->
-      <div ref="featuresRef" class="features-row">
-        
-        <!-- Feature 1 -->
-        <div class="feature-card glass-card">
-          <div class="feature-number">01</div>
-          <h3 class="feature-title">Enfoque estratégico</h3>
-          <p class="feature-description">
-            Planificación profunda que entiende tu marca, contexto y objetivos. 
-            Construimos sistemas de comunicación sostenibles.
-          </p>
-        </div>
-
-        <!-- Feature 2 -->
-        <div class="feature-card glass-card">
-          <div class="feature-number">02</div>
-          <h3 class="feature-title">Procesos claros</h3>
-          <p class="feature-description">
-            Metodología ordenada y transparente. Cada etapa del proyecto 
-            está definida para que sepas qué esperar.
-          </p>
-        </div>
-
-        <!-- Feature 3 -->
-        <div class="feature-card glass-card">
-          <div class="feature-number">03</div>
-          <h3 class="feature-title">Comunicación coherente</h3>
-          <p class="feature-description">
-            Todo tu ecosistema digital alineado. Desde redes sociales hasta 
-            tu sitio web, con una voz unificada.
-          </p>
-        </div>
-
-        <!-- Feature 4 -->
-        <div class="feature-card glass-card">
-          <div class="feature-number">04</div>
-          <h3 class="feature-title">Experiencia real</h3>
-          <p class="feature-description">
-            Marcas, eventos y servicios premium. Trabajamos con proyectos 
-            que apuestan por la calidad.
-          </p>
-        </div>
-
-      </div>
-
-      <!-- Decorative Elements -->
-      <div class="decorative-elements">
-        <!-- Left vertical text -->
-        <div class="deco-left">
-          <span class="deco-text">BYLOA</span>
-        </div>
-      </div>
-
-      <!-- Bottom glass pill -->
-      <div class="deco-pill-container">
-        <div class="deco-pill glass-pill">
-          <span class="pill-text">Comunicación estratégica</span>
-          <div class="pill-dot"></div>
-        </div>
-      </div>
-
-    </div>
-  </section>
-</template>
-
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
-import gsap from 'gsap'
-import { ScrollTrigger } from 'gsap/ScrollTrigger'
+/**
+ * Manifiesto: por qué ByLoa.
+ *
+ * Antes: un título, una bajada y cuatro tarjetas de vidrio iguales, todas
+ * entrando con el mismo fade. Ahora la sección tiene una jerarquía real.
+ *
+ * - El titular se enciende palabra por palabra atado al scroll (scrub), así el
+ *   lector avanza por la frase en vez de verla aparecer entera.
+ * - Las razones son una lista que se abre: sólo la activa muestra su texto, y
+ *   la apertura la resuelve CSS con `grid-template-rows: 0fr → 1fr`, que anima
+ *   alturas automáticas sin medir nada en JS.
+ */
+import { ref } from 'vue'
+import { gsap, SplitText, splitMasked } from '@/animations/gsap'
+import { useGsap } from '@/composables/useGsap'
+import { useAmbientMood } from '@/composables/useAmbient'
 
-gsap.registerPlugin(ScrollTrigger)
+const reasons = [
+  {
+    title: 'Diagnóstico primero',
+    description:
+      'Miramos tu marca, tu audiencia y el negocio antes de producir una sola pieza. Sin eso, el contenido es adivinar.',
+  },
+  {
+    title: 'Un plan, no ocurrencias',
+    description:
+      'Cada publicación y cada pauta responde a un objetivo. Sabés qué se hace, para qué y cuándo se revisa.',
+  },
+  {
+    title: 'Contenido que trabaja',
+    description:
+      'Piezas pensadas para posicionar, generar consultas y vender. La estética importa; el resultado, más.',
+  },
+  {
+    title: 'Equipo del otro lado',
+    description:
+      'No entregamos un drive y desaparecemos. Seguimos, medimos y ajustamos con vos mes a mes.',
+  },
+]
 
-const sectionRef = ref(null)
-const heroRef = ref(null)
-const featuresRef = ref(null)
+const root = ref(null)
+const active = ref(0)
+const canHover = typeof window !== 'undefined' && window.matchMedia('(hover: hover)').matches
 
-let ctx = null
+const toggle = (i) => (active.value = active.value === i ? -1 : i)
+const onHover = (i) => canHover && (active.value = i)
 
-onMounted(() => {
-  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-  if (prefersReducedMotion) return
+useAmbientMood(root, 'why')
 
-  ctx = gsap.context(() => {
-    // Hero animation
-    gsap.fromTo(
-      heroRef.value,
-      { opacity: 0, y: 40 },
-      {
-        opacity: 1,
-        y: 0,
-        duration: 0.9,
-        ease: 'power2.out',
-        scrollTrigger: {
-          trigger: heroRef.value,
-          start: 'top 85%',
-          once: true
-        }
-      }
-    )
+useGsap(root, () => {
+  // El titular se enciende palabra por palabra a medida que entra.
+  const title = SplitText.create('.why__title', { type: 'words' })
+  gsap.fromTo(
+    title.words,
+    { opacity: 0.14 },
+    {
+      opacity: 1,
+      ease: 'none',
+      stagger: 0.4,
+      scrollTrigger: { trigger: '.why__title', start: 'top 82%', end: 'bottom 52%', scrub: 0.5 },
+    },
+  )
 
-    // Features stagger animation
-    const features = featuresRef.value?.querySelectorAll('.feature-card')
-    if (features) {
-      gsap.fromTo(
-        features,
-        { opacity: 0, y: 30 },
-        {
-          opacity: 1,
-          y: 0,
-          duration: 0.6,
-          stagger: 0.1,
-          ease: 'power2.out',
-          scrollTrigger: {
-            trigger: featuresRef.value,
-            start: 'top 80%',
-            once: true
-          }
-        }
-      )
-    }
-  }, sectionRef.value)
-})
+  const lead = splitMasked('.why__lead')
+  gsap
+    .timeline({
+      scrollTrigger: { trigger: '.why__intro', start: 'top 70%', once: true },
+      defaults: { ease: 'expo.out' },
+    })
+    .set('.why__reveal', { opacity: 1 })
+    .from('.why__intro .eyebrow', { opacity: 0, y: 18, duration: 1 }, 0)
+    .from(lead.lines, { yPercent: 110, duration: 1.1, stagger: 0.07 }, 0.15)
 
-onUnmounted(() => {
-  if (ctx) ctx.revert()
+  gsap.from('.reason', {
+    opacity: 0,
+    y: 34,
+    duration: 1.1,
+    stagger: 0.09,
+    ease: 'expo.out',
+    scrollTrigger: { trigger: '.why__list', start: 'top 78%', once: true },
+  })
+
 })
 </script>
 
+<template>
+  <section id="agency" ref="root" class="why">
+    <div class="why__intro">
+      <p class="eyebrow why__reveal">Por qué ByLoa</p>
+
+      <h2 class="why__title">
+        Una agencia para marcas que quieren <em>vender mejor</em>.
+      </h2>
+
+      <p class="why__lead why__reveal">
+        Acompañamos a marcas y negocios a decidir qué decir, dónde publicarlo y cómo medir
+        si está funcionando. Menos ruido. Más dirección.
+      </p>
+    </div>
+
+    <ul class="why__list">
+      <li
+        v-for="(reason, i) in reasons"
+        :key="reason.title"
+        class="reason"
+        :class="{ 'is-active': i === active }"
+        @pointerenter="onHover(i)"
+      >
+        <button
+          type="button"
+          class="reason__head"
+          :aria-expanded="i === active"
+          :aria-controls="`reason-${i}`"
+          @click="toggle(i)"
+        >
+          <span class="reason__index">{{ String(i + 1).padStart(2, '0') }}</span>
+          <span class="reason__title">{{ reason.title }}</span>
+          <span class="reason__mark" aria-hidden="true" />
+        </button>
+
+        <div :id="`reason-${i}`" class="reason__panel">
+          <p>{{ reason.description }}</p>
+        </div>
+      </li>
+    </ul>
+  </section>
+</template>
+
 <style scoped>
-.why-byloa-section {
+.why {
   position: relative;
-  min-height: 100vh;
-  padding: 8rem 0;
-  display: flex;
-  align-items: center;
-  overflow: hidden;
-}
-
-/* Gradient Background - IDENTICAL to Hero */
-.hero-gradient {
-  position: absolute;
-  inset: 0;
-  background: 
-    radial-gradient(ellipse 80% 70% at 110% 90%, #F5F2ED 0%, #FC94C7 20%, transparent 55%),
-    radial-gradient(ellipse 60% 60% at 100% 65%, #FC94C7 0%, transparent 50%),
-    radial-gradient(ellipse 70% 60% at 95% 80%, #F46EBB 0%, transparent 55%),
-    radial-gradient(ellipse 90% 80% at 80% 95%, #9a5080 0%, transparent 55%),
-    radial-gradient(ellipse 110% 90% at 60% 90%, #5a3060 0%, transparent 60%),
-    radial-gradient(ellipse 130% 110% at 45% 100%, #3a2045 0%, transparent 65%),
-    linear-gradient(145deg, #0a0a0a 0%, #0a0a0a 42%, #1a1a2e 62%, #2d2045 100%);
-}
-
-/* Top fade from black */
-.top-fade {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 200px;
-  background: linear-gradient(to bottom, #000000 0%, transparent 100%);
-  z-index: 1;
-  pointer-events: none;
-}
-
-/* Bottom fade to black */
-.bottom-fade {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 200px;
-  background: linear-gradient(to bottom, transparent 0%, #000000 100%);
-  z-index: 1;
-  pointer-events: none;
-}
-
-/* Hero Row */
-.hero-row {
+  z-index: var(--z-content);
   display: grid;
-  grid-template-columns: 1.2fr 1fr;
-  gap: 4rem;
-  align-items: flex-start;
-  margin-bottom: 5rem;
+  justify-items: center;
+  gap: clamp(3rem, 2rem + 4vw, 6rem);
+  padding: var(--section-space) var(--gutter);
 }
 
-/* Title */
-.hero-title {
-  max-width: 600px;
+/* ---- Intro ---- */
+
+.why__intro {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+  align-items: end;
+  gap: 1.5rem clamp(2rem, 1rem + 4vw, 6rem);
+  width: 100%;
+  max-width: 82rem;
 }
 
-.title-main {
-  font-family: 'COOLVETICA', sans-serif;
-  font-size: clamp(2.8rem, 6vw, 4.5rem);
+.why__intro .eyebrow {
+  grid-column: 1 / -1;
+}
+
+.why__title {
+  font-family: var(--font-display);
+  font-size: var(--fs-h2);
   font-weight: 400;
-  color: #ffffff;
-  line-height: 1.05;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.03em;
+  line-height: 0.98;
 }
 
-.title-italic {
+.why__title em {
+  font-family: var(--font-serif);
   font-style: italic;
-  font-weight: 300;
-  color: rgba(255, 255, 255, 0.85);
 }
 
-/* Description */
-.hero-description {
-  padding-top: 1rem;
+.why__lead {
+  max-width: 38ch;
+  color: var(--c-muted);
+  font-size: var(--fs-lead);
+  line-height: 1.5;
 }
 
-.description-text {
-  font-family: 'Manrope', sans-serif;
-  font-size: 1rem;
-  font-weight: 400;
-  color: rgba(255, 255, 255, 0.6);
-  line-height: 1.7;
-  max-width: 380px;
+.why__reveal {
+  opacity: 0;
 }
 
-/* Features Row */
-.features-row {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 1.5rem;
+/* ---- Razones ---- */
+
+.why__list {
+  width: 100%;
+  max-width: 82rem;
 }
 
-/* Glass Card */
-.glass-card {
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.08) 0%,
-    rgba(255, 255, 255, 0.03) 100%
-  );
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 20px;
-  transition: all 0.4s ease;
-}
-
-.glass-card:hover {
-  border-color: rgba(255, 255, 255, 0.2);
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.12) 0%,
-    rgba(255, 255, 255, 0.05) 100%
-  );
-  transform: translateY(-4px);
-}
-
-/* Feature Card */
-.feature-card {
-  padding: 1.75rem;
+.reason {
   position: relative;
+  border-top: 1px solid var(--c-line);
+  transition: border-color 0.6s var(--ease-out);
 }
 
-.feature-number {
-  font-family: 'Manrope', sans-serif;
-  font-size: 0.7rem;
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.3);
-  letter-spacing: 0.1em;
-  margin-bottom: 1.25rem;
+.reason:last-child {
+  border-bottom: 1px solid var(--c-line);
 }
 
-.feature-title {
-  font-family: 'Manrope', sans-serif;
-  font-size: 1rem;
-  font-weight: 600;
-  color: #ffffff;
-  margin-bottom: 0.75rem;
-  line-height: 1.3;
+.reason.is-active {
+  border-top-color: var(--c-line-strong);
 }
 
-.feature-description {
-  font-family: 'Manrope', sans-serif;
-  font-size: 0.85rem;
-  font-weight: 400;
-  color: rgba(255, 255, 255, 0.5);
-  line-height: 1.6;
-}
-
-/* Decorative Elements */
-.decorative-elements {
+/* Halo que acompaña a la razón abierta */
+.reason::before {
+  content: '';
   position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 5;
+  inset: -1px 0 auto;
+  height: 1px;
+  background: linear-gradient(90deg, var(--c-magenta), var(--c-pink), transparent);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.7s var(--ease-out);
 }
 
-.deco-left {
-  position: absolute;
-  left: 2rem;
-  top: 50%;
-  transform: translateY(-50%) rotate(-90deg);
+.reason.is-active::before {
+  transform: scaleX(1);
 }
 
-.deco-text {
-  font-family: 'Manrope', sans-serif;
-  font-size: 0.65rem;
-  font-weight: 600;
-  letter-spacing: 0.3em;
-  color: rgba(255, 255, 255, 0.15);
-  text-transform: uppercase;
-}
-
-/* Glass Pill Container */
-.deco-pill-container {
-  display: flex;
-  justify-content: center;
-  margin-top: 3rem;
-}
-
-/* Glass Pill */
-.glass-pill {
-  display: flex;
+.reason__head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.75rem 1.5rem;
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.1) 0%,
-    rgba(255, 255, 255, 0.05) 100%
-  );
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 50px;
+  gap: clamp(1rem, 0.5rem + 2vw, 2.5rem);
+  width: 100%;
+  padding: clamp(1.25rem, 1rem + 1vw, 2rem) 0;
+  text-align: left;
 }
 
-.pill-text {
-  font-family: 'Manrope', sans-serif;
-  font-size: 0.75rem;
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.7);
-  letter-spacing: 0.05em;
+.reason__index {
+  color: var(--c-faint);
+  font-size: var(--fs-micro);
+  letter-spacing: 0.18em;
+  font-variant-numeric: tabular-nums;
+  transition: color 0.5s var(--ease-out);
 }
 
-.pill-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #F46EBB;
-  animation: pulse 2s ease-in-out infinite;
+.reason.is-active .reason__index {
+  color: var(--c-pink);
 }
 
-@keyframes pulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.5; transform: scale(1.2); }
+.reason__title {
+  font-family: var(--font-display);
+  font-size: clamp(1.5rem, 1rem + 2vw, 2.75rem);
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  color: var(--c-muted);
+  /* El título activo se adelanta apenas: movimiento, no salto. */
+  transition:
+    color 0.5s var(--ease-out),
+    transform 0.6s var(--ease-out);
+  transform-origin: left center;
 }
 
-/* Responsive */
-@media (max-width: 1024px) {
-  .hero-row {
-    grid-template-columns: 1fr;
-    gap: 2rem;
-  }
-  
-  .hero-description {
-    padding-top: 0;
-  }
-  
-  .description-text {
-    max-width: 100%;
-  }
-  
-  .features-row {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 1rem;
-  }
-  
-  .deco-left {
-    display: none;
-  }
+.reason.is-active .reason__title {
+  color: var(--c-fg);
+  transform: translateX(0.5rem);
 }
 
-@media (max-width: 640px) {
-  .why-byloa-section {
-    padding: 4rem 0;
+/* Marca "+" que gira a "×" al abrir, dibujada con dos barras */
+.reason__mark {
+  position: relative;
+  width: 1rem;
+  height: 1rem;
+  transition: transform 0.6s var(--ease-out);
+}
+
+.reason__mark::before,
+.reason__mark::after {
+  content: '';
+  position: absolute;
+  inset: 50% 0 auto;
+  height: 1px;
+  background: var(--c-muted);
+  transition: background-color 0.5s var(--ease-out);
+}
+
+.reason__mark::after {
+  transform: rotate(90deg);
+}
+
+.reason.is-active .reason__mark {
+  transform: rotate(135deg);
+}
+
+.reason.is-active .reason__mark::before,
+.reason.is-active .reason__mark::after {
+  background: var(--c-pink);
+}
+
+/* Apertura sin medir alturas en JS: 0fr → 1fr */
+.reason__panel {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.7s var(--ease-out);
+}
+
+.reason.is-active .reason__panel {
+  grid-template-rows: 1fr;
+}
+
+.reason__panel > p {
+  overflow: hidden;
+  max-width: 54ch;
+  /* El padding vive acá adentro para que no sume alto cuando está cerrado. */
+  padding-left: clamp(2.5rem, 1.5rem + 4vw, 6rem);
+  color: var(--c-muted);
+  font-size: var(--fs-body);
+  line-height: 1.65;
+  opacity: 0;
+  transition: opacity 0.5s var(--ease-out);
+}
+
+.reason.is-active .reason__panel > p {
+  padding-bottom: clamp(1.25rem, 1rem + 1vw, 2rem);
+  opacity: 1;
+}
+
+@media (max-width: 900px) {
+  .why__intro {
+    grid-template-columns: minmax(0, 1fr);
   }
-  
-  .hero-row {
-    margin-bottom: 3rem;
+
+  .reason__head {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: start;
   }
-  
-  .features-row {
-    grid-template-columns: 1fr;
-    gap: 1rem;
-  }
-  
-  .title-main {
-    font-size: 2.5rem;
-  }
-  
-  .glass-pill {
-    margin-top: 2rem;
+
+  .reason__panel > p {
+    padding-left: 2.5rem;
   }
 }
 </style>

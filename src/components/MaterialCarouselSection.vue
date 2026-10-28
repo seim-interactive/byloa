@@ -1,296 +1,322 @@
+<script setup>
+/**
+ * Proyectos: una cinta que avanza sola, sin fin.
+ *
+ * Antes era un Swiper con flechas y `overflow: hidden` en el contenedor, que
+ * cortaba en seco las sombras de las cards y dejaba una línea visible abajo.
+ * Acá la lista se duplica exacta y se desplaza el ancho de una copia en bucle:
+ * al volver a cero la imagen es idéntica, así que la costura no se ve. Los
+ * bordes se desvanecen con una máscara en vez de recortarse.
+ *
+ * La velocidad es constante en px/s, no una duración fija: con más proyectos
+ * la cinta no se acelera.
+ */
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { gsap, splitMasked } from '@/animations/gsap'
+import { useGsap } from '@/composables/useGsap'
+import { projects, fetchProjects } from '@/store/projects'
+
+/** Píxeles por segundo que recorre la cinta. */
+const SPEED = 42
+/** Mínimo de cards por copia para que la cinta llene pantallas anchas. */
+const MIN_CARDS = 8
+
+const root = ref(null)
+const track = ref(null)
+
+/** La lista repetida hasta el mínimo, y esa tira duplicada para el bucle. */
+const loop = computed(() => {
+  const base = projects.value
+  if (!base.length) return []
+  const strip = []
+  while (strip.length < MIN_CARDS) strip.push(...base)
+  return [...strip, ...strip]
+})
+
+/** Ancho de una copia de la tira: el desplazamiento se envuelve ahí. */
+let distance = 0
+/** Lo que mide una card con su separación, o sea el paso de las flechas. */
+let step = 0
+/** Desplazamiento automático acumulado. */
+let offset = 0
+/** Desplazamiento de las flechas, animado aparte para que no corte la marcha. */
+const shift = { value: 0 }
+/** Velocidad actual en px/s: baja a cero con el mouse encima. */
+const speed = { value: 0 }
+let running = false
+
+const apply = () => {
+  if (!track.value || !distance) return
+  gsap.set(track.value, { x: gsap.utils.wrap(-distance, 0, offset + shift.value) })
+}
+
+const tick = (_t, deltaMs) => {
+  // Tope al delta: si la pestaña estuvo en segundo plano, un salto enorme
+  // haría pegar un tirón a la cinta al volver.
+  offset -= (speed.value * Math.min(deltaMs, 50)) / 1000
+  if (offset <= -distance) offset += distance
+  apply()
+}
+
+const measure = () => {
+  if (!track.value || !loop.value.length) return
+  distance = track.value.scrollWidth / 2
+  const card = track.value.querySelector('.project')
+  const gap = parseFloat(getComputedStyle(track.value).columnGap) || 0
+  step = card ? card.offsetWidth + gap : 0
+}
+
+const build = () => {
+  measure()
+  if (!distance) return
+  speed.value = SPEED
+  if (!running) {
+    gsap.ticker.add(tick)
+    running = true
+  }
+  apply()
+}
+
+const hover = (isOver) => {
+  // Frenada suave en vez de un corte seco.
+  gsap.to(speed, { value: isOver ? 0 : SPEED, duration: 0.5, ease: 'power2.out' })
+}
+
+/** Flechas: mueven una card. La cinta sigue avanzando por debajo. */
+const nudge = (dir) => {
+  if (!step) return
+  gsap.to(shift, {
+    value: shift.value - dir * step,
+    duration: 0.9,
+    ease: 'power3.out',
+    onUpdate: apply,
+  })
+}
+
+let resizeObserver
+
+onMounted(async () => {
+  await fetchProjects()
+})
+
+// Las cards recién existen cuando llegan los proyectos.
+watch(loop, async () => {
+  await new Promise((resolve) => requestAnimationFrame(resolve))
+  build()
+})
+
+onMounted(() => {
+  resizeObserver = new ResizeObserver(() => build())
+  if (root.value) resizeObserver.observe(root.value)
+})
+
+onBeforeUnmount(() => {
+  if (running) gsap.ticker.remove(tick)
+  gsap.killTweensOf([speed, shift])
+  resizeObserver?.disconnect()
+})
+
+useGsap(root, () => {
+  const title = splitMasked('.projects__title')
+  gsap
+    .timeline({
+      scrollTrigger: { trigger: root.value, start: 'top 78%', once: true },
+      defaults: { ease: 'expo.out' },
+    })
+    .set('.projects__head', { opacity: 1 })
+    .from('.projects__arrow', { opacity: 0, y: 18, duration: 0.9, stagger: 0.07 }, 0.5)
+    .from('.projects__head .eyebrow', { opacity: 0, y: 18, duration: 1 }, 0)
+    .from(title.lines, { yPercent: 115, duration: 1.2, stagger: 0.07 }, 0.1)
+    .from('.projects__lead', { opacity: 0, y: 22, duration: 1 }, 0.35)
+    .fromTo('.projects__rail', { opacity: 0, y: 50 }, { opacity: 1, y: 0, duration: 1.4 }, 0.3)
+})
+</script>
+
 <template>
-  <section ref="containerRef" class="relative w-full bg-black py-16 md:py-24 overflow-hidden">
-    <!-- Header Section -->
-    <div ref="headerRef" class="w-full px-4 sm:px-6 lg:px-8 mb-16 md:mb-24">
-      <div class="max-w-7xl mx-auto">
-        <div class="flex items-center gap-3 mb-8" ref="headerLabelRef">
-          <div class="w-8 h-px bg-white/20"></div>
-          <span class="text-xs uppercase tracking-widest text-white/40 font-light">Trabajo destacado</span>
-        </div>
-        <div ref="headerTitleRef">
-          <h2 class="section-title text-white tracking-tight">
-            Proyectos
-          </h2>
-        </div>
-        <div class="mt-6 md:mt-8 max-w-2xl" ref="headerDescriptionRef">
-          <p class="text-sm text-white/50 font-light leading-relaxed">
-            Casos de estudio que demuestran nuestro enfoque en estrategia, diseño y comunicación coherente.
-          </p>
-        </div>
+  <section id="projects" ref="root" class="projects">
+    <header class="projects__head">
+      <p class="eyebrow">Trabajo destacado</p>
+      <h2 class="section-title projects__title">Proyectos</h2>
+      <p class="projects__lead">
+        Campañas, contenido y piezas que ya están en el mercado. Así se ve el trabajo
+        cuando deja de ser un concepto.
+      </p>
+    </header>
+
+    <div class="projects__rail" @pointerenter="hover(true)" @pointerleave="hover(false)">
+      <div ref="track" class="projects__track">
+        <a
+          v-for="(project, i) in loop"
+          :key="`${project.id}-${i}`"
+          class="project"
+          :href="project.link || undefined"
+          :target="project.link ? '_blank' : undefined"
+          rel="noopener"
+          :aria-hidden="i >= loop.length / 2 ? 'true' : undefined"
+          :tabindex="i >= loop.length / 2 ? -1 : undefined"
+        >
+          <video
+            v-if="project.type !== 'image'"
+            :src="project.media"
+            muted
+            loop
+            autoplay
+            playsinline
+            preload="metadata"
+          />
+          <img v-else :src="project.media" :alt="project.title || ''" loading="lazy" />
+          <span v-if="project.title" class="project__title on-media">{{ project.title }}</span>
+        </a>
       </div>
     </div>
 
-    <!-- Carousel Section -->
-    <div class="carousel-wrapper" ref="carouselWrapperRef">
-      <Swiper
-        ref="swiperRef"
-        :modules="[Navigation]"
-        :slides-per-view="slidesPerView"
-        :space-between="spaceBetween"
-        :loop="true"
-        :centered-slides="true"
-        :grab-cursor="true"
-        :speed="600"
-        :breakpoints="breakpoints"
-        :navigation="{ prevEl: '.swiper-button-prev-custom', nextEl: '.swiper-button-next-custom' }"
-        class="swiper-carousel"
-      >
-        <SwiperSlide v-for="(project, idx) in galleryProjects" :key="`${project.id}-${idx}`" class="swiper-slide-custom">
-          <a :href="project.link" target="_blank" class="carousel-card cursor-pointer group">
-            <img v-if="project.type === 'image'" :src="project.media" :alt="project.title" class="carousel-image" />
-            <video v-else :src="project.media" class="carousel-image" muted loop autoplay playsinline />
-          </a>
-        </SwiperSlide>
-      </Swiper>
-    </div>
-
-    <!-- Navigation Buttons -->
-    <div class="flex justify-center items-center gap-6 mt-12 md:mt-16" ref="navigationButtonsRef">
-      <button class="swiper-button-prev-custom w-12 h-12 rounded-full border border-gray-600 text-gray-400 hover:border-white hover:text-white transition-all duration-300 flex items-center justify-center text-xl">
-        ←
+    <div class="projects__controls">
+      <button type="button" class="projects__arrow" aria-label="Proyectos anteriores" @click="nudge(-1)">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M19 12H5M11 6l-6 6 6 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
       </button>
-      <button class="swiper-button-next-custom w-12 h-12 rounded-full border border-white text-white hover:bg-white hover:text-black transition-all duration-300 flex items-center justify-center text-xl font-bold">
-        →
+      <button type="button" class="projects__arrow" aria-label="Proyectos siguientes" @click="nudge(1)">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
       </button>
     </div>
   </section>
 </template>
 
-<script setup>
-import { ref, onMounted, onUnmounted, computed, nextTick } from 'vue'
-import { Swiper, SwiperSlide } from 'swiper/vue'
-import { Navigation } from 'swiper/modules'
-import gsap from 'gsap'
-import { ScrollTrigger } from 'gsap/ScrollTrigger'
-import { projects, fetchProjects } from '../store/projects'
-import { useCarouselProjects } from '../composables/useCarouselProjects'
-import 'swiper/css'
-import 'swiper/css/navigation'
-
-gsap.registerPlugin(ScrollTrigger)
-
-const containerRef = ref(null)
-const headerRef = ref(null)
-const headerLabelRef = ref(null)
-const headerTitleRef = ref(null)
-const headerDescriptionRef = ref(null)
-const carouselWrapperRef = ref(null)
-const navigationButtonsRef = ref(null)
-const swiperRef = ref(null)
-
-const slidesPerView = 5
-const spaceBetween = 20
-
-const breakpoints = {
-  320: { slidesPerView: 1.5, spaceBetween: 12 },
-  480: { slidesPerView: 2, spaceBetween: 14 },
-  640: { slidesPerView: 2.5, spaceBetween: 16 },
-  768: { slidesPerView: 3, spaceBetween: 18 },
-  1024: { slidesPerView: 4, spaceBetween: 20 },
-  1440: { slidesPerView: 5, spaceBetween: 20 }
-}
-
-// Usar la composable para manejar la lógica de duplicación de proyectos
-const { carouselProjects, carouselInfo } = useCarouselProjects(projects)
-
-// Computed para traer los proyectos duplicados del carrusel
-const galleryProjects = computed(() => carouselProjects.value)
-
-onMounted(async () => {
-  // Cargar proyectos de la base de datos
-  await fetchProjects()
-
-  // Esperar a que Vue actualice el DOM con los nuevos proyectos
-  await nextTick()
-
-  // Forzar recalculación de Swiper con los nuevos slides
-  if (swiperRef.value?.swiper) {
-    swiperRef.value.swiper.update()
-    // También reiniciar el carrusel para asegurar buen posicionamiento
-    swiperRef.value.swiper.slideTo(0, 0)
-  }
-
-  // Animaciones con ScrollTrigger
-  const triggers = []
-
-  if (headerLabelRef.value) {
-    triggers.push(
-      gsap.fromTo(headerLabelRef.value, { opacity: 0, x: -20 }, { opacity: 1, x: 0, duration: 0.7, ease: 'power2.out', scrollTrigger: { trigger: headerRef.value, start: 'top 85%', once: true } })
-    )
-  }
-  if (headerTitleRef.value) {
-    triggers.push(
-      gsap.fromTo(headerTitleRef.value, { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.9, ease: 'power2.out', delay: 0.15, scrollTrigger: { trigger: headerRef.value, start: 'top 85%', once: true } })
-    )
-  }
-  if (headerDescriptionRef.value) {
-    triggers.push(
-      gsap.fromTo(headerDescriptionRef.value, { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.8, ease: 'power2.out', delay: 0.3, scrollTrigger: { trigger: headerRef.value, start: 'top 85%', once: true } })
-    )
-  }
-  if (carouselWrapperRef.value) {
-    triggers.push(
-      gsap.fromTo(carouselWrapperRef.value, { opacity: 0, y: 60 }, { opacity: 1, y: 0, duration: 1, ease: 'power2.out', scrollTrigger: { trigger: carouselWrapperRef.value, start: 'top 75%', once: true } })
-    )
-  }
-  if (navigationButtonsRef.value) {
-    triggers.push(
-      gsap.fromTo(navigationButtonsRef.value, { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.8, ease: 'power2.out', scrollTrigger: { trigger: carouselWrapperRef.value, start: 'bottom 85%', once: true } })
-    )
-  }
-})
-
-onUnmounted(() => {
-  ScrollTrigger.getAll().forEach(trigger => trigger.kill())
-})
-</script>
-
 <style scoped>
-.section-title {
-  font-family: 'COOLVETICA', sans-serif;
-  font-size: clamp(3rem, 8vw, 5rem);
-  font-weight: 400;
-  color: #fff;
-  letter-spacing: -0.02em;
-  line-height: 1.1;
-  margin-top: 1rem;
-}
-
-.carousel-wrapper {
+.projects {
   position: relative;
-  width: 100%;
-  overflow: hidden;
+  z-index: var(--z-content);
+  display: grid;
+  /* `minmax(0, 1fr)` y no `auto`: la cinta mide `max-content` (mucho más que
+     la pantalla) y sin esto estiraba la columna de la grilla, así que las
+     flechas se "centraban" respecto de ese ancho gigante y quedaban fuera de
+     cuadro. El recorte visual lo sigue haciendo la máscara del carril. */
+  grid-template-columns: minmax(0, 1fr);
+  gap: clamp(3rem, 2rem + 4vw, 5rem);
+  /* Abajo, menos que el espacio de sección: lo que sigue es la alianza, que
+     ya arranca con su propio aire. */
+  padding-block: var(--section-space) clamp(3rem, 2rem + 3vw, 5rem);
 }
 
-.swiper-carousel {
-  width: 100%;
-  padding: 2rem 1rem;
-  perspective: 1200px;
+.projects__head {
+  display: grid;
+  gap: 1.25rem;
+  padding-inline: var(--gutter);
+  opacity: 0;
 }
 
-.swiper-slide-custom {
+.projects__controls {
   display: flex;
-  align-items: center;
   justify-content: center;
-  height: auto;
-  position: relative;
+  gap: 0.75rem;
+  padding-inline: var(--gutter);
 }
 
-.carousel-card {
+.projects__arrow {
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border: 1px solid var(--c-line-strong);
+  border-radius: 50%;
+  color: var(--c-fg);
+  transition:
+    background-color 0.4s var(--ease-out),
+    color 0.4s var(--ease-out);
+}
+
+.projects__arrow svg {
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
+.projects__arrow:hover {
+  background: var(--c-fg);
+  color: var(--c-on-fg);
+}
+
+.projects__lead {
+  max-width: 46ch;
+  color: var(--c-muted);
+  font-size: var(--fs-body);
+  line-height: 1.6;
+}
+
+/* Los bordes se desvanecen con una máscara: sin `overflow: hidden` no hay
+   recorte duro ni sombras cortadas al ras. */
+.projects__rail {
+  opacity: 0;
+  mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent);
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent);
+}
+
+.projects__track {
+  display: flex;
+  width: max-content;
+  gap: clamp(0.75rem, 0.5rem + 1vw, 1.5rem);
+  padding-inline: clamp(0.75rem, 0.5rem + 1vw, 1.5rem);
+  will-change: transform;
+}
+
+.project {
   position: relative;
-  aspect-ratio: 3/4;
-  width: 100%;
+  flex: 0 0 auto;
+  width: clamp(11rem, 20vw, 17rem);
+  /* La proporción se reserva antes de que carguen las imágenes: así el alto de
+     la página no cambia a mitad de scroll. */
+  aspect-ratio: 3 / 4;
   overflow: hidden;
-  border-radius: 20px;
-  background: #1a1a1a;
-  cursor: grab;
-  transform: scale(0.85);
-  transition: all 0.4s ease-out;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+  border: 1px solid var(--c-line);
+  border-radius: var(--radius);
+  background: var(--c-tint);
+  transition:
+    transform 0.6s var(--ease-out),
+    border-color 0.6s var(--ease-out);
 }
 
-/* Overlay dinámico - más opaco cuanto más lejos está */
-.carousel-card::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: 20px;
-  background: rgba(0,0,0,0.8);
-  pointer-events: none;
-  transition: all 0.4s ease-out;
-}
-
-/* Slide activa - sin overlay */
-.swiper-slide-active .carousel-card {
-  transform: scale(1);
-  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
-}
-
-.swiper-slide-active .carousel-card::after {
-  background: rgba(0,0,0,0);
-}
-
-/* Primera capa lateral inmediata - overlay moderado */
-.swiper-slide-prev .carousel-card,
-.swiper-slide-next .carousel-card {
-  transform: scale(0.92);
-}
-
-.swiper-slide-prev .carousel-card::after,
-.swiper-slide-next .carousel-card::after {
-  background: rgba(0,0,0,0.5);
-}
-
-/* Segunda capa lateral - overlay más oscuro */
-.swiper-slide-prev-prev .carousel-card,
-.swiper-slide-next-next .carousel-card {
-  transform: scale(0.85);
-}
-
-.swiper-slide-prev-prev .carousel-card::after,
-.swiper-slide-next-next .carousel-card::after {
-  background: rgba(0,0,0,0.75);
-}
-
-/* Tercera capa lateral - overlay muy oscuro */
-.swiper-slide-prev-prev-prev .carousel-card,
-.swiper-slide-next-next-next .carousel-card {
-  transform: scale(0.8);
-}
-
-.swiper-slide-prev-prev-prev .carousel-card::after,
-.swiper-slide-next-next-next .carousel-card::after {
-  background: rgba(0,0,0,0.9);
-}
-
-/* Imagen */
-.carousel-image {
+.project img,
+.project video {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  border-radius: 20px;
-  transition: transform 0.4s ease-out;
+  /* Apagadas por defecto: la que se mira gana color y contraste. */
+  filter: var(--media-rest);
+  transition: filter 0.6s var(--ease-out), transform 0.8s var(--ease-out);
 }
 
-.carousel-card:hover .carousel-image {
-  transform: scale(1.02);
+.project__title {
+  position: absolute;
+  inset: auto 0 0;
+  padding: 2.5rem 1rem 1rem;
+  background: linear-gradient(to top, rgb(5 3 8 / 0.85), transparent);
+  color: var(--c-fg);
+  font-size: var(--fs-small);
+  line-height: 1.3;
+  opacity: 0;
+  translate: 0 0.5rem;
+  transition:
+    opacity 0.5s var(--ease-out),
+    translate 0.5s var(--ease-out);
 }
 
-.carousel-card:active {
-  cursor: grabbing;
-}
+@media (hover: hover) {
+  .project:hover {
+    transform: scale(1.03);
+    border-color: var(--c-line-strong);
+  }
 
-/* Botones personalizados de navegación */
-.swiper-button-prev-custom,
-.swiper-button-next-custom {
-  cursor: pointer;
-  user-select: none;
-}
+  .project:hover img,
+  .project:hover video {
+    filter: brightness(1) saturate(1);
+    transform: scale(1.04);
+  }
 
-.swiper-button-prev-custom:active,
-.swiper-button-next-custom:active {
-  transform: scale(0.95);
-}
-
-/* Responsive */
-@media (max-width: 1024px) {
-  .carousel-card { border-radius: 18px; }
-  .carousel-image { border-radius: 18px; }
-  .carousel-card::after { border-radius: 18px; }
-}
-
-@media (max-width: 768px) {
-  .swiper-carousel { padding: 1.5rem 0.75rem; }
-  .carousel-card { border-radius: 16px; transform: scale(0.9); }
-  .carousel-image { border-radius: 16px; }
-  .carousel-card::after { border-radius: 16px; }
-}
-
-@media (max-width: 640px) {
-  .swiper-carousel { padding: 1rem 0.5rem; }
-  .carousel-card { border-radius: 12px; transform: scale(0.88); }
-  .swiper-slide-active .carousel-card { transform: scale(1); }
-  .carousel-image { border-radius: 12px; }
-  .carousel-card::after { border-radius: 12px; }
+  .project:hover .project__title {
+    opacity: 1;
+    translate: 0 0;
+  }
 }
 </style>

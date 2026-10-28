@@ -1,352 +1,311 @@
+<script setup>
+/**
+ * Portada. No lleva fondo propio: se apoya en el humo animado global
+ * (AmbientBackground) y sólo declara su mood.
+ *
+ * La entrada es una sola línea de tiempo: el titular revela palabra por
+ * palabra desde abajo con las líneas enmascaradas, y detrás entran bajada,
+ * botones y métricas. Al scrollear, el bloque sube y se desvanece antes de
+ * que llegue Servicios.
+ */
+import { ref } from 'vue'
+import { gsap, ScrollTrigger, splitMasked } from '@/animations/gsap'
+import { useGsap } from '@/composables/useGsap'
+import { useAmbientMood } from '@/composables/useAmbient'
+import { scrollToSection } from '@/composables/useSmoothScroll'
+import { vMagnetic } from '@/directives/magnetic'
+
+const stats = [
+  { value: 100, prefix: '+', suffix: '', label: 'Proyectos\na medida' },
+  { value: 40, prefix: '+', suffix: '', label: 'Marcas\nacompañadas' },
+  { value: 100, prefix: '', suffix: '%', label: 'Clientes\nsatisfechos' },
+]
+
+const root = ref(null)
+useAmbientMood(root, 'hero')
+
+useGsap(root, () => {
+  const title = splitMasked('.hero__title', 'lines,words')
+  const lead = splitMasked('.hero__lead')
+
+  gsap
+    .timeline({
+      delay: 0.15,
+      defaults: { ease: 'expo.out' },
+    })
+    .set('.hero__reveal', { opacity: 1 })
+    .from('.eyebrow', { opacity: 0, y: 18, duration: 1 }, 0)
+    .from(title.words, { yPercent: 118, duration: 1.5, stagger: 0.035 }, 0.1)
+    .from(lead.lines, { yPercent: 110, duration: 1.2, stagger: 0.08 }, 0.6)
+    .from('.hero__actions > *', { y: 26, opacity: 0, duration: 1, stagger: 0.08 }, 0.75)
+    .from('.stat', { y: 26, opacity: 0, duration: 1, stagger: 0.08 }, 0.9)
+    .from('.hero__cue', { opacity: 0, duration: 1 }, 1.1)
+
+  // Los números suben hasta su valor mientras entran las métricas.
+  gsap.utils.toArray('.stat__value').forEach((el) => {
+    const target = Number(el.dataset.value)
+    const counter = { n: 0 }
+    gsap.to(counter, {
+      n: target,
+      duration: 1.6,
+      delay: 1,
+      ease: 'power2.out',
+      onUpdate: () => (el.querySelector('.stat__num').textContent = Math.round(counter.n)),
+    })
+  })
+
+  // Señal de scroll: late suave hasta que el usuario baja.
+  gsap.to('.hero__cue-line', { scaleY: 0.35, transformOrigin: 'top', duration: 1.6, repeat: -1, yoyo: true, ease: 'sine.inOut' })
+
+  // Al salir, la portada se va hacia arriba en vez de cortarse de golpe.
+  gsap.to('.hero__main', {
+    yPercent: -14,
+    opacity: 0,
+    ease: 'none',
+    scrollTrigger: { trigger: root.value, start: 'top top', end: 'bottom top', scrub: true },
+  })
+})
+</script>
+
 <template>
-  <section id="home" class="hero-section relative h-screen overflow-hidden">
-    <!-- Gradient Background -->
-    <div class="hero-gradient absolute inset-0 z-0"></div>
+  <section id="home" ref="root" class="hero">
+    <div class="hero__main">
+      <p class="eyebrow hero__reveal">Agencia de comunicación</p>
 
-    <!-- Content Container -->
-    <div class="relative z-10 h-full flex flex-col">
-      
-      <!-- Main Content Area -->
-      <div class="flex-1 flex flex-col items-center justify-center relative px-4 sm:px-8 lg:px-20">
-        <!-- Container for centered content -->
-        <div class="max-w-5xl w-full text-center">
-          <div ref="headlineRef" class="opacity-0">
-            <!-- Line 1: Ordená y potenciá with circles -->
-            <div class="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4 mb-2 sm:mb-4">
-              <p class="font-coolvetica font-light text-[2.75rem] sm:text-6xl lg:text-7xl text-white leading-[1.1] sm:leading-none tracking-tight">
-                Ordená y potenciá
-              </p>
-              <!-- Decorative circles - Desktop only (inline) -->
-              <svg class="hidden sm:block w-32 sm:h-12 lg:w-52 lg:h-16 text-white flex-shrink-0" viewBox="0 0 130 32">
-                <circle cx="16" cy="16" r="14" fill="rgba(255,255,255,0.05)" stroke="currentColor" stroke-width="0.3" opacity="0.4"/>
-                <circle cx="30" cy="16" r="14" fill="rgba(255,255,255,0.05)" stroke="currentColor" stroke-width="0.3" opacity="0.5"/>
-                <circle cx="44" cy="16" r="14" fill="rgba(255,255,255,0.05)" stroke="currentColor" stroke-width="0.3" opacity="0.6"/>
-                <circle cx="56" cy="16" r="14" fill="rgba(255,255,255,0.05)" stroke="currentColor" stroke-width="0.3" opacity="0.7"/>
-                <circle cx="70" cy="16" r="14" fill="rgba(255,255,255,0.05)" stroke="currentColor" stroke-width="0.3" opacity="0.9"/>
-                <circle cx="84" cy="16" r="14" fill="rgba(255,255,255,0.05)" stroke="currentColor" stroke-width="0.3" opacity="1"/>
-              </svg>
-            </div>
+      <h1 class="hero__title hero__reveal">
+        Hacemos crecer tu marca con <em>contenido</em> y campañas.
+      </h1>
 
-            <!-- Line 2: Button + tu comunicación (Desktop: inline, Mobile: stacked) -->
-            <div ref="ctaRef" class="opacity-0 flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4 mb-2 sm:mb-4">
-              <!-- CTA Button - Desktop: inline before text -->
-              <button
-                type="button"
-                @click="emit('goToServices')"
-                class="hidden sm:flex group items-center justify-center gap-3 px-6 py-3 text-sm font-light text-white border border-white/40 rounded-full hover:bg-white/10 hover:border-white/60 transition-all duration-300 hover:shadow-lg hover:shadow-white/10"
-              >
-                <span>ver propuesta</span>
-                <span class="flex items-center justify-center w-10 h-10 border border-white/40 rounded-full group-hover:bg-white/10 transition-all">
-                  <svg class="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                  </svg>
-                </span>
-              </button>
-              <p class="font-coolvetica font-light text-[2.75rem] sm:text-5xl lg:text-6xl text-white leading-[1.1] sm:leading-none tracking-tight">
-                tu comunicación
-              </p>
-            </div>
+      <p class="hero__lead hero__reveal">
+        Estrategia, contenido y publicidad digital. Un plan claro para cada canal,
+        medible y sostenido en el tiempo.
+      </p>
 
-            <!-- Line 3: con estrategia real -->
-            <p ref="descriptionRef" class="opacity-0 font-coolvetica font-light text-[2.25rem] sm:text-5xl lg:text-6xl text-white leading-[1.1] sm:leading-none tracking-tight mb-0">
-              con <span class="italic font-cambria">estrategia</span> real.
-            </p>
-
-            <!-- Decorative circles - Mobile only (below text) -->
-            <div class="flex sm:hidden justify-center mt-6">
-              <svg class="w-40 h-10 text-white" viewBox="0 0 100 32">
-                <circle cx="16" cy="16" r="14" fill="rgba(255,255,255,0.05)" stroke="currentColor" stroke-width="0.3" opacity="0.4"/>
-                <circle cx="30" cy="16" r="14" fill="rgba(255,255,255,0.05)" stroke="currentColor" stroke-width="0.3" opacity="0.5"/>
-                <circle cx="44" cy="16" r="14" fill="rgba(255,255,255,0.05)" stroke="currentColor" stroke-width="0.3" opacity="0.6"/>
-                <circle cx="58" cy="16" r="14" fill="rgba(255,255,255,0.05)" stroke="currentColor" stroke-width="0.3" opacity="0.7"/>
-                <circle cx="72" cy="16" r="14" fill="rgba(255,255,255,0.05)" stroke="currentColor" stroke-width="0.3" opacity="0.9"/>
-                <circle cx="86" cy="16" r="14" fill="rgba(255,255,255,0.05)" stroke="currentColor" stroke-width="0.3" opacity="1"/>
-              </svg>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- CTA Button - Mobile only (below text) -->
-      <div ref="mobileCTARef" class="opacity-0 sm:hidden flex-none w-full px-4 pb-4 flex justify-center">
-        <button
-          type="button"
-          @click="emit('goToServices')"
-          class="group flex items-center justify-center gap-2 px-4 py-2 text-xs font-light text-white border border-white/40 rounded-full hover:bg-white/10 hover:border-white/60 transition-all duration-300 hover:shadow-lg hover:shadow-white/10"
-        >
-          <span>ver propuesta</span>
-          <span class="flex items-center justify-center w-6 h-6 border border-white/40 rounded-full group-hover:bg-white/10 transition-all">
-            <svg class="w-3 h-3 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-            </svg>
-          </span>
+      <div class="hero__actions hero__reveal">
+        <button v-magnetic type="button" class="btn btn--solid" @click="scrollToSection('#services')">
+          Ver servicios
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </button>
+        <button v-magnetic type="button" class="btn btn--ghost" @click="scrollToSection('#contact')">
+          Hablemos
         </button>
       </div>
+    </div>
 
-      <!-- Bottom Section - Responsive Layout -->
-      <div class="flex-none w-full px-3 sm:px-8 lg:px-20 pb-2 sm:pb-8">
-        <!-- Border line -->
-        <div class="border-t border-white/20 mx-auto max-w-8xl mb-2 sm:mb-8"></div>
-        
-        <!-- Stats Section -->
-        <div ref="statsRef" class="opacity-0">
-          <div class="sm:flex sm:items-center sm:justify-between sm:gap-8">
-            <!-- Left: Description - Hidden on mobile -->
-            <div class="hidden sm:block flex-shrink-0 sm:max-w-xs">
-              <h3 class="font-coolvetica font-bold text-xs uppercase tracking-widest text-white mb-2">
-                COMUNICACIÓN CLARA
-              </h3>
-              <p class="font-cambria text-xs text-white/60 leading-relaxed">
-                Ordenamos tu comunicación con criterio estratégico, ayudándote a crecer con coherencia en cada canal
-              </p>
-            </div>
+    <div class="hero__bar">
+      <ul class="stats hero__reveal">
+        <li v-for="stat in stats" :key="stat.label" class="stat">
+          <p class="stat__value" :data-value="stat.value">
+            <span>{{ stat.prefix }}</span><span class="stat__num">{{ stat.value }}</span><span>{{ stat.suffix }}</span>
+          </p>
+          <p class="stat__label">{{ stat.label }}</p>
+        </li>
+      </ul>
 
-            <!-- Stats - Compact on mobile -->
-            <div ref="statsContainerRef" class="flex items-center justify-center gap-3 sm:gap-12 sm:flex-1">
-              <!-- Stat 1 -->
-              <div class="flex items-center gap-1 sm:gap-2 group">
-                <p class="font-coolvetica font-bold text-base sm:text-3xl text-white">+100</p>
-                <p class="font-cambria text-[9px] sm:text-xs text-white/60 leading-tight">Proyectos<br/>a Medida</p>
-              </div>
-
-              <!-- Stat 2 -->
-              <div class="flex items-center gap-1 sm:gap-2 group">
-                <p class="font-coolvetica font-bold text-base sm:text-3xl text-white">+40</p>
-                <p class="font-cambria text-[9px] sm:text-xs text-white/60 leading-tight">Marcas<br/>Acompañadas</p>
-              </div>
-
-              <!-- Stat 3 -->
-              <div class="flex items-center gap-1 sm:gap-2 group">
-                <p class="font-coolvetica font-bold text-base sm:text-3xl text-white">100%</p>
-                <p class="font-cambria text-[9px] sm:text-xs text-white/60 leading-tight">Clientes<br/>Satisfechos</p>
-              </div>
-            </div>
-
-            <!-- Light Mode Toggle - Hidden on mobile -->
-            <div class="flex-shrink-0 hidden sm:flex items-center justify-end">
-              <label class="flex items-center group">
-                <div class="relative">
-                  <input type="checkbox" class="sr-only" />
-                  <div class="block w-10 h-6 bg-white/80 rounded-full transition-all"></div>
-                  <div class="absolute left-1 top-1 bg-gray-900 w-4 h-4 rounded-full transition"></div>
-                </div>
-                <div class="ml-3 font-cambria text-xs text-white/70">Modo claro</div>
-              </label>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Sidebar Left (Social Links) - Hidden on mobile -->
-      <div ref="socialRef" class="opacity-0 absolute left-4 sm:left-8 top-1/2 -translate-y-1/2 hidden lg:flex flex-col gap-6">
-        <a href="#" class="text-white/60 hover:text-white transition-all duration-300 hover:scale-110" aria-label="Instagram">
-          <i class="pi pi-instagram text-xl"></i>
-        </a>
-        <a href="#" class="text-white/60 hover:text-white transition-all duration-300 hover:scale-110" aria-label="Twitter">
-          <i class="pi pi-twitter text-xl"></i>
-        </a>
-        <a href="#" class="text-white/60 hover:text-white transition-all duration-300 hover:scale-110" aria-label="LinkedIn">
-          <i class="pi pi-linkedin text-xl"></i>
-        </a>
-      </div>
+      <button type="button" class="hero__cue" aria-label="Ir a servicios" @click="scrollToSection('#services')">
+        <span>Scroll</span>
+        <span class="hero__cue-line" aria-hidden="true" />
+      </button>
     </div>
   </section>
 </template>
 
-<script setup>
-import { ref, onMounted } from 'vue'
-import gsap from 'gsap'
-
-const emit = defineEmits(['goToServices'])
-
-const headlineRef = ref(null)
-const descriptionRef = ref(null)
-const ctaRef = ref(null)
-const statsRef = ref(null)
-const socialRef = ref(null)
-const statsContainerRef = ref(null)
-const mobileCTARef = ref(null)
-
-onMounted(() => {
-  const tl = gsap.timeline()
-
-  // Staggered animations for a more sophisticated feel
-  tl.to(headlineRef.value, {
-    opacity: 1,
-    y: 0,
-    duration: 0.9,
-    delay: 0.2,
-    ease: 'power3.out'
-  }, 0)
-    .to(ctaRef.value, {
-      opacity: 1,
-      y: 0,
-      duration: 0.9,
-      ease: 'power3.out'
-    }, '-=0.6')
-    .to(descriptionRef.value, {
-      opacity: 1,
-      y: 0,
-      duration: 0.9,
-      ease: 'power3.out'
-    }, '-=0.6')
-    .to(mobileCTARef.value, {
-      opacity: 1,
-      y: 0,
-      duration: 0.9,
-      ease: 'power3.out'
-    }, '-=0.6')
-    .to(statsRef.value, {
-      opacity: 1,
-      y: 0,
-      duration: 0.9,
-      ease: 'power3.out'
-    }, '-=0.6')
-    .to(socialRef.value, {
-      opacity: 1,
-      duration: 0.8,
-      ease: 'power2.out'
-    }, '-=0.5')
-
-  // Add subtle hover animation to stats on desktop
-  if (window.innerWidth >= 640) {
-    const statElements = statsContainerRef.value?.querySelectorAll('.group')
-    if (statElements) {
-      statElements.forEach((stat) => {
-        stat.addEventListener('mouseenter', () => {
-          gsap.to(stat, {
-            scale: 1.05,
-            duration: 0.3,
-            ease: 'power2.out'
-          })
-        })
-        stat.addEventListener('mouseleave', () => {
-          gsap.to(stat, {
-            scale: 1,
-            duration: 0.3,
-            ease: 'power2.out'
-          })
-        })
-      })
-    }
-  }
-})
-</script>
-
 <style scoped>
-.hero-section {
-  background: #0a0a0a;
+.hero {
   position: relative;
-  overflow: hidden;
+  z-index: var(--z-content);
+  display: grid;
+  grid-template-rows: 1fr auto;
+  gap: 3rem;
+  min-height: 100svh;
+  padding: calc(var(--header-h) + 3rem) var(--gutter) clamp(1.5rem, 1rem + 2vw, 2.5rem);
 }
 
-.hero-gradient {
-  position: absolute;
-  inset: 0;
-  background: 
-    radial-gradient(ellipse 80% 70% at 110% 90%, #F5F2ED 0%, #FC94C7 20%, transparent 55%),
-    radial-gradient(ellipse 60% 60% at 100% 65%, #FC94C7 0%, transparent 50%),
-    radial-gradient(ellipse 70% 60% at 95% 80%, #F46EBB 0%, transparent 55%),
-    radial-gradient(ellipse 90% 80% at 80% 95%, #9a5080 0%, transparent 55%),
-    radial-gradient(ellipse 110% 90% at 60% 90%, #5a3060 0%, transparent 60%),
-    radial-gradient(ellipse 130% 110% at 45% 100%, #3a2045 0%, transparent 65%),
-    linear-gradient(145deg, #0a0a0a 0%, #0a0a0a 42%, #1a1a2e 62%, #2d2045 100%);
+/* El texto se lee sobre el humo sin necesidad de una capa oscura encima. */
+.hero__main {
+  display: grid;
+  align-content: center;
+  justify-items: start;
+  gap: clamp(1.25rem, 1rem + 1vw, 2rem);
+  max-width: min(100%, 55rem);
 }
 
-/* Ensure text remains visible */
-.hero-section h1,
-.hero-section h3 {
-  text-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+/* Las piezas arrancan ocultas y las enciende la línea de tiempo: así no
+   se ve un flash del layout terminado antes de animar. */
+.hero__reveal {
+  opacity: 0;
 }
 
-.hero-section p {
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+.hero__title {
+  font-family: var(--font-display);
+  /* Tope por alto además de por ancho: el titular nunca empuja las métricas
+     ni el botón fuera de la pantalla. */
+  font-size: min(var(--fs-display), 10.5svh);
+  font-weight: 400;
+  letter-spacing: -0.035em;
+  line-height: 0.92;
 }
 
-/* Enhanced Button hover effects */
-button {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+.hero__title em {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-weight: 400;
 }
 
-button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 16px rgba(252, 148, 199, 0.15);
+.hero__lead {
+  max-width: 44ch;
+  color: var(--c-muted);
+  font-size: var(--fs-lead);
+  line-height: 1.45;
 }
 
-button:active {
-  transform: translateY(0);
+.hero__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
 }
 
-/* Smooth scrolling for stats on mobile */
-@supports (scroll-behavior: smooth) {
-  .overflow-x-auto {
-    scroll-behavior: smooth;
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6em;
+  padding: 1em 1.6em;
+  border: 1px solid var(--c-fg);
+  border-radius: 999px;
+  font-size: var(--fs-small);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transition:
+    background-color 0.4s var(--ease-out),
+    color 0.4s var(--ease-out),
+    border-color 0.4s var(--ease-out);
+}
+
+.btn svg {
+  width: 1.15em;
+  height: 1.15em;
+  transition: transform 0.4s var(--ease-out);
+}
+
+.btn--solid {
+  background: var(--c-fg);
+  color: var(--c-on-fg);
+}
+
+.btn--ghost {
+  border-color: var(--c-line-strong);
+  color: var(--c-fg);
+}
+
+@media (hover: hover) {
+  .btn--solid:hover {
+    background: transparent;
+    color: var(--c-fg);
+  }
+
+  .btn--solid:hover svg {
+    transform: translateX(4px);
+  }
+
+  .btn--ghost:hover {
+    border-color: var(--c-fg);
+    background: var(--c-tint-strong);
   }
 }
 
-/* Stats container smooth scrolling */
-.snap-x {
-  scroll-snap-type: x mandatory;
-  -webkit-overflow-scrolling: touch;
+/* ---- Barra inferior: métricas + señal de scroll ---- */
+
+.hero__bar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 2rem;
+  padding-top: clamp(1.25rem, 1rem + 1vw, 2rem);
+  border-top: 1px solid var(--c-line);
 }
 
-.snap-center {
-  scroll-snap-align: center;
+.stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: clamp(1.5rem, 1rem + 3vw, 4rem);
 }
 
-/* Mobile optimizations */
-@media (max-width: 640px) {
-  .hero-section {
-    padding-top: 1rem;
-    padding-bottom: 1rem;
-  }
-
-  /* Scrollbar styling for stats on mobile */
-  .overflow-x-auto::-webkit-scrollbar {
-    height: 2px;
-  }
-
-  .overflow-x-auto::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 10px;
-  }
-
-  .overflow-x-auto::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.2);
-    border-radius: 10px;
-  }
-
-  .overflow-x-auto::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.3);
-  }
+.stat {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
 }
 
-/* Desktop animations */
-@media (min-width: 640px) {
-  button {
-    position: relative;
-    overflow: hidden;
+.stat__value {
+  font-family: var(--font-display);
+  font-size: clamp(1.75rem, 1.2rem + 2vw, 3rem);
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  /* Ancho estable mientras el número cuenta hacia arriba. */
+  font-variant-numeric: tabular-nums;
+}
+
+.stat__label {
+  color: var(--c-faint);
+  font-size: var(--fs-micro);
+  line-height: 1.35;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  white-space: pre-line;
+}
+
+.hero__cue {
+  display: grid;
+  justify-items: center;
+  gap: 0.75rem;
+  color: var(--c-faint);
+  font-size: var(--fs-micro);
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  transition: color 0.4s var(--ease-out);
+}
+
+.hero__cue:hover {
+  color: var(--c-fg);
+}
+
+.hero__cue-line {
+  width: 1px;
+  height: 3rem;
+  background: linear-gradient(to bottom, var(--c-line-strong), transparent);
+}
+
+@media (max-width: 900px) {
+  .hero__main {
+    max-width: 100%;
   }
 
-  button::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
+  .hero__cue {
+    display: none;
+  }
+
+  /* Las tres métricas entran en una fila: en flex, la tercera se iba abajo
+     y quedaba fuera de la pantalla. */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
     width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-    transition: left 0.5s;
   }
 
-  button:hover::before {
-    left: 100%;
+  .stat {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.35rem;
   }
-}
 
-/* Improved text rendering */
-.hero-section {
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  .stat__label {
+    letter-spacing: 0.08em;
+  }
 }
 </style>

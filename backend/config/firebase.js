@@ -1,5 +1,4 @@
 const admin = require('firebase-admin')
-const path = require('path')
 
 let firebaseApp = null
 
@@ -9,11 +8,24 @@ const initializeFirebase = () => {
   }
 
   try {
-    const keyPath = path.resolve(__dirname, '../firebase-key.json')
-    
+    const projectId = process.env.FIREBASE_PROJECT_ID
+    const clientEmail = process.env.FIREBASE_CLIENT_EMAIL
+    const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n')
+    const storageBucket = process.env.FIREBASE_STORAGE_BUCKET
+
+    if (!projectId || !clientEmail || !privateKey || !storageBucket) {
+      throw new Error(
+        'Missing Firebase env vars: FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY, FIREBASE_STORAGE_BUCKET'
+      )
+    }
+
     firebaseApp = admin.initializeApp({
-      credential: admin.credential.cert(require(keyPath)),
-      storageBucket: process.env.FIREBASE_STORAGE_BUCKET || 'your-project.appspot.com'
+      credential: admin.credential.cert({
+        projectId,
+        clientEmail,
+        privateKey
+      }),
+      storageBucket
     })
 
     console.log('✅ Firebase initialized')

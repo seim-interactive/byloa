@@ -1,9 +1,8 @@
 @import "tailwindcss";
+@import "./styles/tokens.css";
 /*---break---
  */
 @plugin "tailwindcss-animate";
-@import url('https://unpkg.com/primeicons/primeicons.css');
-@import url('https://fonts.googleapis.com/css2?family=Cambria:ital@0;1&display=swap');
 /*---break---
  */
 @custom-variant dark (&:is(.dark *));
@@ -26,27 +25,23 @@
  * - Blink Script (Tertiary): Script/cursive style for decorative elements
  */
 
-/* Brand Font Imports */
-@font-face {
-  font-family: 'Coolvetica';
-  src: url('/fonts/Coolvetica Hv Comp.otf') format('opentype');
-  font-weight: 200;
-  font-style: normal;
-}
-
+/* Brand Font Imports
+ *
+ * Los cortes disponibles en /public/fonts son todos Coolvetica. Antes "Hv Comp"
+ * (Heavy Compressed) estaba declarada como peso 200, así que cualquier texto
+ * en `font-weight: 100/200` salía comprimido y pesado sin querer — eso era lo
+ * que rompía el título de "Marcas que acompañamos".
+ *
+ * Ahora la familia `Coolvetica` tiene sólo su redonda y su itálica, y los
+ * cortes comprimidos viven en familias propias, para usarlos a propósito y
+ * nunca por accidente.
+ */
 @font-face {
   font-family: 'Coolvetica';
   src: url('/fonts/Coolvetica Rg.otf') format('opentype');
   font-weight: 400;
   font-style: normal;
-}
-
-@font-face {
-  font-family: 'Coolvetica';
-  src: url('/fonts/Coolvetica Rg Cond.otf') format('opentype');
-  font-weight: 400;
-  font-style: normal;
-  font-stretch: condensed;
+  font-display: swap;
 }
 
 @font-face {
@@ -54,14 +49,23 @@
   src: url('/fonts/Coolvetica Rg It.otf') format('opentype');
   font-weight: 400;
   font-style: italic;
+  font-display: swap;
 }
 
 @font-face {
-  font-family: 'Coolvetica';
-  src: url('/fonts/Coolvetica Rg Cram.otf') format('opentype');
+  font-family: 'Coolvetica Condensed';
+  src: url('/fonts/Coolvetica Rg Cond.otf') format('opentype');
   font-weight: 400;
   font-style: normal;
-  font-stretch: extra-condensed;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Coolvetica Compressed';
+  src: url('/fonts/Coolvetica Hv Comp.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
 }
 
 :root {
@@ -120,12 +124,12 @@
     @apply box-border;
   }
 
-  html {
-    @apply scroll-smooth;
-  }
-
   body {
-    @apply bg-white text-gray-900 font-sans antialiased;
+    @apply antialiased;
+    background: var(--c-bg);
+    color: var(--c-fg);
+    font-family: var(--font-sans);
+    font-synthesis-weight: none;
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -157,17 +161,6 @@
 
   .text-gradient {
     @apply bg-linear-to-r from-rose-500 to-pink-500 bg-clip-text text-transparent;
-  }
-}
-
-/* Accesibilidad */
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
   }
 }
 
@@ -246,9 +239,6 @@
 @layer base {
   * {
     @apply border-border outline-ring/50;
-  }
-  body {
-    @apply bg-background text-foreground;
   }
 }
 

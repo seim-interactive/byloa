@@ -1,39 +1,20 @@
 <template>
-  <section class="py-20 sm:py-28 relative z-0 overflow-hidden bg-black">
+  <section class="py-20 sm:py-28 relative z-0 overflow-hidden">
     <!-- HEADER SECTION -->
-    <div class="container-lg mx-auto px-4 sm:px-6 relative z-0 mb-16 sm:mb-20 md:mb-24">
-
-
-      <!-- Título principal - Tipografía premium -->
-      <div class="mb-6 sm:mb-8 text-center">
-        <h2 class="section-title font-light text-white tracking-tight leading-tight">
-          Marcas que<br class="hidden sm:block" />
-          <span class="font-medium font-coolvetica"> acompañamos</span>
-        </h2>
-      </div>
-
-      <!-- Subtítulo - Más refinado y legible -->
-      <div class="text-center max-w-3xl mx-auto mb-0">
-        <p class="text-sm sm:text-base md:text-lg text-white/70 font-light leading-relaxed tracking-wide">
-          Acompañamos emprendimientos y proyectos que apuestan a la <br class="hidden sm:inline" />
-          <span class="text-white/70">comunicación estratégica y coherente</span>
-        </p>
-      </div>
-    </div>
+    <header class="brands__head">
+      <p class="eyebrow">Clientes</p>
+      <h2 class="section-title brands__title">Marcas que acompañamos</h2>
+      <p class="brands__lead">
+        Acompañamos marcas y negocios que necesitan una comunicación con rumbo:
+        contenido, pauta y un equipo que ejecuta.
+      </p>
+    </header>
 
     <!-- ===== CARROUSELES ===== -->
     <div
-      class="w-screen relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] overflow-hidden z-0"
+      class="brands__marquee w-screen relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] overflow-hidden z-0"
       style="--space-mobile: 0.2rem; --space-desktop: 1.25rem; --space: var(--space-mobile)"
     >
-
-     <!-- DEGRADADO LATERAL IZQUIERDO -->
-     <div class="pointer-events-none absolute inset-y-0 left-0 w-32 sm:w-48 lg:w-64 
-                bg-gradient-to-r from-black to-transparent z-5"></div>
-
-    <!-- DEGRADADO LATERAL DERECHO -->
-    <div class="pointer-events-none absolute inset-y-0 right-0 w-32 sm:w-48 lg:w-64 
-                bg-gradient-to-l from-black to-transparent z-5"></div>
 
       <!-- MARQUEE 1 -->
       <Marquee :repeat="8" class="[--gap:var(--space)] [--duration:50s]">
@@ -75,11 +56,7 @@
     </div>
 
     <!-- FOOTER LABEL -->
-    <div class="mt-16 sm:mt-20 md:mt-24 text-center">
-      <span class="text-xs sm:text-sm tracking-widest text-white/30 font-light">
-        Y muchas marcas más
-      </span>
-    </div>
+    <p class="brands__note">Y muchas marcas más</p>
   </section>
 </template>
 
@@ -118,18 +95,47 @@ onMounted(() => {
   }
 }
 
-.section-title {
-  /* font-family: 'COOLVETICA', sans-serif; */
-  font-size: clamp(3rem, 8vw, 5rem);
-  font-weight: 100;
-  color: #fff;
-  letter-spacing: -0.02em;
-  line-height: 1.1;
-  margin-top: 1rem;
+.brands__head {
+  display: grid;
+  justify-items: center;
+  gap: 1.25rem;
+  max-width: 48rem;
+  margin-inline: auto;
+  margin-bottom: clamp(3rem, 2rem + 4vw, 6rem);
+  padding-inline: var(--gutter);
+  text-align: center;
 }
 
-.section-title .font-medium {
-  font-weight: 400;
-  font-family: 'COOLVETICA', sans-serif;
+.brands__title {
+  max-width: 14ch;
+}
+
+.brands__lead {
+  max-width: 52ch;
+  color: var(--c-muted);
+  font-size: var(--fs-body);
+  line-height: 1.6;
+}
+
+/* Los bordes se desvanecen con máscara en vez de taparse con un degradado
+   negro: el fondo del sitio ya no es negro sólido. */
+.brands__marquee {
+  mask-image: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent);
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent);
+}
+
+/* Los logos de clientes son blancos, pensados para fondo oscuro. En claro se
+   invierten (y se pasan a gris para que ninguno quede con un color raro). */
+:root[data-theme='light'] .brands__marquee img {
+  filter: invert(1) grayscale(1);
+}
+
+.brands__note {
+  margin-top: clamp(3rem, 2rem + 4vw, 6rem);
+  color: var(--c-faint);
+  font-size: var(--fs-micro);
+  letter-spacing: 0.28em;
+  text-align: center;
+  text-transform: uppercase;
 }
 </style>

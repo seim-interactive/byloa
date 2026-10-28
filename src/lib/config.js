@@ -1,9 +1,9 @@
 // API Configuration
-const isDevelopment = import.meta.env.MODE === 'development'
-
-export const API_BASE_URL = isDevelopment
-  ? 'http://localhost:3000'
-  : 'https://api.byloa.agency'
+export const API_BASE_URL =
+  import.meta.env.VITE_API_URL ||
+  (import.meta.env.MODE === 'development'
+    ? 'http://localhost:3000'
+    : 'https://api.byloa.agency')
 
 export const API_ENDPOINTS = {
   // Config

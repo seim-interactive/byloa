@@ -1,810 +1,440 @@
+<script setup>
+/**
+ * Servicios. Antes esto era una foto de stock a pantalla completa con el texto
+ * encima; ahora se apoya en el humo global y el contenido vive en una lámina
+ * de vidrio.
+ *
+ * Detalle que une la sección con el fondo: al cambiar de servicio, el foco del
+ * humo se corre (`setFocusOffset`), así el fondo acompaña la navegación en vez
+ * de ser un telón quieto.
+ *
+ * El avance automático se pausa con hover, fuera de pantalla y con la pestaña
+ * oculta.
+ */
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import { gsap, ScrollTrigger, splitMasked } from '@/animations/gsap'
+import { useGsap } from '@/composables/useGsap'
+import { setFocusOffset, useAmbientMood } from '@/composables/useAmbient'
+
+/** Segundos que queda cada servicio en pantalla. */
+const DURATION = 6
+
+const services = [
+  {
+    title: 'Gestión de redes sociales',
+    description:
+      'Plan mensual, piezas y community management. Tu marca aparece todos los días con un mensaje que no se desarma.',
+    note: 'Calendario, publicación y respuesta. Presencia constante, no rachas de contenido.',
+  },
+  {
+    title: 'Creación de contenido',
+    description:
+      'Reels, fotos y piezas con dirección creativa. Contenido para que te elijan, no solo para llenar el feed.',
+    note: 'Producción alineada a tu identidad, pensada para conectar y convertir.',
+  },
+  {
+    title: 'Publicidad digital',
+    description:
+      'Campañas en Meta Ads y Google Ads con objetivo, audiencia y presupuesto claros.',
+    note: 'Medimos, ajustamos y hacemos que cada peso de pauta rinda más.',
+  },
+  {
+    title: 'Branding & comunicación',
+    description:
+      'Definimos qué dice tu marca, con qué tono y con qué identidad visual.',
+    note: 'Para que te reconozcan en redes, web y campañas, no un look distinto en cada canal.',
+  },
+  {
+    title: 'Web & landings',
+    description:
+      'Sitios y landings pensados para generar consultas, no solo para verse bien.',
+    note: 'Estructura, texto y diseño orientados a conversión.',
+  },
+]
+
+const root = ref(null)
+const activeIndex = ref(0)
+const current = computed(() => services[activeIndex.value])
+const pad = (n) => String(n + 1).padStart(2, '0')
+
+useAmbientMood(root, 'services')
+
+/* ------------------------------------------------------------ reproducción */
+
+const fills = []
+let timeline
+
+const hovering = ref(false)
+const offscreen = ref(false)
+const tabHidden = ref(false)
+const paused = computed(() => hovering.value || offscreen.value || tabHidden.value)
+
+const play = () => {
+  timeline?.kill()
+  fills.forEach((fill) => fill && gsap.set(fill, { scaleX: 0 }))
+
+  timeline = gsap.timeline({ onComplete: () => go(1) }).fromTo(
+    fills[activeIndex.value],
+    { scaleX: 0 },
+    { scaleX: 1, duration: DURATION, ease: 'none' },
+  )
+  if (paused.value) timeline.pause()
+}
+
+const go = (delta, target) => {
+  const count = services.length
+  activeIndex.value = target ?? (activeIndex.value + delta + count) % count
+  play()
+}
+
+watch(paused, (isPaused) => (isPaused ? timeline?.pause() : timeline?.resume()))
+
+// El foco del humo se corre con el servicio activo: de izquierda a derecha y
+// alternando un poco en vertical, para que el fondo no repita el mismo gesto.
+watch(activeIndex, (i) => {
+  const t = services.length > 1 ? i / (services.length - 1) - 0.5 : 0
+  setFocusOffset(t * 0.24, (i % 2 ? 1 : -1) * 0.07)
+}, { immediate: true })
+
+const onVisibility = () => (tabHidden.value = document.hidden)
+document.addEventListener('visibilitychange', onVisibility)
+
+onBeforeUnmount(() => {
+  timeline?.kill()
+  document.removeEventListener('visibilitychange', onVisibility)
+})
+
+/* --------------------------------------------- transición entre servicios */
+
+const onLeave = (el, done) => {
+  gsap.to(el, { yPercent: -8, opacity: 0, duration: 0.35, ease: 'power2.in', onComplete: done })
+}
+
+const onEnter = (el, done) => {
+  // Se oculta antes de partir el texto: si no, hay un cuadro en el que se ve
+  // el título sin partir y, al partirse, "salta".
+  gsap.set(el, { visibility: 'hidden' })
+
+  const title = splitMasked(el.querySelector('.service__title'), 'lines,words')
+  const body = splitMasked(el.querySelectorAll('.service__body'))
+
+  gsap
+    .timeline({ onComplete: done })
+    .set(el, { visibility: 'visible' }, 0)
+    .from(title.words, { yPercent: 115, duration: 0.9, stagger: 0.03, ease: 'expo.out' }, 0)
+    .from(body.lines, { yPercent: 110, duration: 0.8, stagger: 0.05, ease: 'expo.out' }, 0.15)
+}
+
+/* ----------------------------------------------------------------- entrada */
+
+useGsap(root, () => {
+  ScrollTrigger.create({
+    trigger: root.value,
+    start: 'top bottom',
+    end: 'bottom top',
+    onToggle: (self) => (offscreen.value = !self.isActive),
+  })
+  play()
+
+  gsap
+    .timeline({ scrollTrigger: { trigger: root.value, start: 'top 70%', once: true }, defaults: { ease: 'expo.out' } })
+    .from('.services__panel', { opacity: 0, y: 60, duration: 1.4 }, 0)
+    .from('.services__item', { opacity: 0, x: -24, duration: 1, stagger: 0.07 }, 0.25)
+    .from('.services__ghost', { opacity: 0, duration: 1.6 }, 0.3)
+})
+</script>
+
 <template>
-  <section id="services" class="services-section">
-    <!-- Background Image -->
-    <div class="services-bg">
-      <img src="/I_want_a_2k_202601262320.jpeg" alt="Services background"/>
+  <section
+    id="services"
+    ref="root"
+    class="services"
+    @pointerenter="hovering = true"
+    @pointerleave="hovering = false"
+  >
+    <div class="services__panel glass">
+      <!-- Número gigante del servicio activo, detrás de todo -->
+      <span class="services__ghost" aria-hidden="true">{{ pad(activeIndex) }}</span>
 
-    </div>
-    
-    <!-- Blur Overlay - Solo lado izquierdo (Desktop) -->
-    <div class="services-blur-overlay hidden sm:block"></div>
-    
-    <!-- Top fade from black -->
-    <div class="top-fade"></div>
-    
-    <!-- Bottom fade to black -->
-    <div class="bottom-fade"></div>
-
-    <!-- MOBILE LAYOUT -->
-    <div class="sm:hidden mobile-services-container">
-      <div class="mobile-header">
-        <div class="header-top">
-          <span class="header-label">SERVICIOS</span>
-          <span class="header-counter">{{ String(activeIndex + 1).padStart(1, '0') }} / {{ services.length }}</span>
-        </div>
-      </div>
-
-
-      <!-- Service Detail -->
-      <Transition name="fade-slide" mode="out-in">
-        <div :key="activeIndex" class="mobile-service-content">
-          <h2 class="service-mobile-title">
-            {{ services[activeIndex].title }}
-          </h2>
-          <p class="service-description">
-            {{ services[activeIndex].mainDescription }}
-          </p>
-          <p class="service-secondary" v-if="services[activeIndex].secondaryDescription">
-            {{ services[activeIndex].secondaryDescription }}
-          </p>
-        </div>
-      </Transition>
-
-      <!-- Navigation Bottom -->
-      <div class="mobile-navigation">
-        <!-- Dots -->
-        <div class="dots-container">
-          <span 
-            v-for="(_, index) in services" 
-            :key="index"
-            class="dot"
-            :class="{ 'active': activeIndex === index }"
-            @click="setActiveService(index)"
-          ></span>
-        </div>
-
-        <button class="nav-button next" @click="nextService" :disabled="activeIndex === services.length - 1">
-          <span>Deslizá para ver más</span>
-          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-          </svg>
-        </button>
-      </div>
-    </div>
-
-    <!-- DESKTOP LAYOUT -->
-    <div class="hidden sm:block desktop-services-wrapper">
-      <!-- Decorative Elements - Left Vertical -->
-      <div class="deco-left">
-        <span class="deco-text-vertical">BYLOA</span>
-        <div class="deco-line-vertical"></div>
-      </div>
-
-      <!-- Decorative Elements - Top Right -->
-      <div class="deco-top-right">
-        <span class="deco-text-small">Desarrollado por</span>
-        <span class="deco-text-brand">BYLOA</span>
-        <span class="deco-text-small">Diseño &</span>
-        <span class="deco-text-accent">CREATIVIDAD</span>
-        <span class="deco-cross">+</span>
-      </div>
-      
-      <!-- Content -->
-      <div class="services-content">
-        <!-- Left Side - Navigation -->
-        <div class="services-nav">
-          <div class="nav-header">
-            <span class="nav-label">SERVICIOS</span>
-          </div>
-          
-          <ul class="services-list">
-            <li 
-              v-for="(service, index) in services" 
-              :key="index"
-              class="service-item"
-              :class="{ 'active': activeIndex === index }"
-              @click="setActiveService(index)"
+      <!-- Índice de servicios -->
+      <nav class="services__nav" aria-label="Servicios">
+        <p class="eyebrow">Servicios</p>
+        <ul class="services__list">
+          <li v-for="(service, i) in services" :key="service.title" class="services__item">
+            <button
+              type="button"
+              class="services__link"
+              :class="{ 'is-active': i === activeIndex }"
+              :aria-current="i === activeIndex ? 'true' : undefined"
+              @click="go(0, i)"
             >
-              {{ service.title }}
-            </li>
-          </ul>
-        </div>
+              <span class="services__index">{{ pad(i) }}</span>
+              <span class="services__name">{{ service.title }}</span>
+              <!-- Rail de avance automático del servicio activo -->
+              <span class="services__rail" aria-hidden="true">
+                <span :ref="(el) => (fills[i] = el)" class="services__fill" />
+              </span>
+            </button>
+          </li>
+        </ul>
+      </nav>
 
-        <!-- Center - Main Content -->
-        <div class="services-main">
-          <Transition name="fade-slide" mode="out-in">
-            <div :key="activeIndex" class="service-detail">
-              <h2 class="service-title">
-                {{ services[activeIndex].title.toUpperCase() }}
-              </h2>
-              <p class="service-description">
-                {{ services[activeIndex].mainDescription }}
-              </p>
-              <p class="service-secondary" v-if="services[activeIndex].secondaryDescription">
-                {{ services[activeIndex].secondaryDescription }}
-              </p>
-            </div>
-          </Transition>
-        </div>
+      <!-- Detalle del servicio -->
+      <div class="services__stage">
+        <Transition :css="false" mode="out-in" @leave="onLeave" @enter="onEnter">
+          <article :key="activeIndex" class="service">
+            <h2 class="service__title">{{ current.title }}</h2>
+            <p class="service__body service__description">{{ current.description }}</p>
+            <p class="service__body service__note">{{ current.note }}</p>
+          </article>
+        </Transition>
 
-        <!-- Right Side - Dots Navigation -->
-        <div class="dots-nav">
-          <span 
-            v-for="(_, index) in services" 
-            :key="index"
-            class="dot"
-            :class="{ 'active': activeIndex === index }"
-            @click="setActiveService(index)"
-          ></span>
+        <div class="services__controls">
+          <button type="button" class="services__arrow" aria-label="Servicio anterior" @click="go(-1)">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M19 12H5M11 6l-6 6 6 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </button>
+          <p class="services__counter">
+            <span>{{ pad(activeIndex) }}</span> / {{ pad(services.length - 1) }}
+          </p>
+          <button type="button" class="services__arrow" aria-label="Servicio siguiente" @click="go(1)">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </button>
         </div>
       </div>
     </div>
   </section>
 </template>
 
-<script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
-
-const services = [
-  {
-    title: 'Gestión de redes sociales',
-    mainDescription:
-      'Estrategia de contenidos, planificación mensual, creación de piezas y community management.',
-    secondaryDescription:
-      'Construimos presencia, posicionamiento y coherencia de marca.'
-  },
-  {
-    title: 'Creación de contenido',
-    mainDescription:
-      'Producción de contenido orgánico, reels y piezas visuales con dirección creativa y estética cuidada.',
-    secondaryDescription:
-      'Contenido pensado para comunicar, conectar y convertir.'
-  },
-  {
-    title: 'Publicidad digital',
-    mainDescription:
-      'Planificación y gestión de campañas publicitarias en Google Ads y Meta Ads.',
-    secondaryDescription:
-      'Segmentación, análisis de métricas y optimización continua.'
-  },
-  {
-    title: 'Branding & comunicación',
-    mainDescription:
-      'Definición del mensaje de marca, identidad visual y lineamientos.',
-    secondaryDescription:
-      'Marcas claras, coherentes y profesionales.'
-  },
-  {
-    title: 'Web & landings',
-    mainDescription:
-      'Diseño y redacción de sitios web pensados para convertir.',
-    secondaryDescription: 'Optimización para conversión y experiencia de usuario.'
-  }
-]
-
-const activeIndex = ref(0)
-let autoScrollInterval = null
-
-// Detectar si es mobile
-const isMobile = () => window.innerWidth < 640
-
-const setActiveService = (index) => {
-  activeIndex.value = index
-  resetAutoScroll()
-}
-
-const nextService = () => {
-  activeIndex.value = (activeIndex.value + 1) % services.length
-}
-
-const prevService = () => {
-  activeIndex.value = (activeIndex.value - 1 + services.length) % services.length
-}
-
-const startAutoScroll = () => {
-  // 3000ms en mobile, 2000ms en desktop
-  const delay = isMobile() ? 3000 : 2000
-  autoScrollInterval = setInterval(nextService, delay)
-}
-
-const resetAutoScroll = () => {
-  if (autoScrollInterval) {
-    clearInterval(autoScrollInterval)
-  }
-  startAutoScroll()
-}
-
-onMounted(() => {
-  startAutoScroll()
-})
-
-onUnmounted(() => {
-  if (autoScrollInterval) {
-    clearInterval(autoScrollInterval)
-  }
-})
-</script>
-
 <style scoped>
-.services-section {
+.services {
   position: relative;
+  z-index: var(--z-content);
+  display: grid;
+  align-items: center;
+  min-height: 100svh;
+  /* Alto de pantalla, no `--section-space`: si no, el panel queda fuera de vista. */
+  padding: calc(var(--header-h) + 2.5rem) var(--gutter) 4rem;
+}
+
+.services__panel {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 20rem) minmax(0, 1fr);
+  gap: clamp(2rem, 1rem + 4vw, 5rem);
   width: 100%;
-  height: 100vh;
+  max-width: 82rem;
+  margin-inline: auto;
+  padding: clamp(2rem, 1.5rem + 3vw, 4.5rem);
   overflow: hidden;
+  border-radius: var(--radius-lg);
 }
 
-.services-bg {
+/* Número enorme del servicio activo: da escala sin agregar una foto. */
+.services__ghost {
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 0;
-}
-
-.services-bg img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: right center;
-}
-
-.services-blur-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 45%;
-  height: 100%;
-  backdrop-filter: blur(10px);
-  background: linear-gradient(
-    90deg,
-    /* rgba(200, 210, 220, 0.7) 0%,
-    rgba(200, 210, 220, 0.4) 60%, */
-    rgba(0, 0, 0, 0.7) 0%,
-rgba(0, 0, 0, 0.4) 60%,
-    transparent 100%
-  );
-  z-index: 1;
-}
-
-/* Top fade from black */
-.top-fade {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 200px;
-  background: linear-gradient(to bottom, #000000 0%, transparent 100%);
-  z-index: 2;
-  pointer-events: none;
-}
-
-/* Bottom fade to black */
-.bottom-fade {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 200px;
-  background: linear-gradient(to bottom, transparent 0%, #000000 100%);
-  z-index: 2;
-  pointer-events: none;
-}
-
-/* Decorative Elements - Left Vertical */
-.deco-left {
-  position: absolute;
-  left: 1.5rem;
-  top: 50%;
-  transform: translateY(-50%);
-  z-index: 2;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1rem;
-}
-
-.deco-text-vertical {
-  writing-mode: vertical-rl;
-  text-orientation: mixed;
-  font-size: 0.65rem;
-  letter-spacing: 0.4em;
-  /* color: rgba(0, 0, 0, 0.4); */
-  color: rgba(255, 255, 255, 0.4);
-  text-transform: uppercase;
-}
-
-.deco-line-vertical {
-  width: 1px;
-  height: 80px;
-  /* background: linear-gradient(180deg, rgba(137, 23, 23, 0.3) 0%, transparent 100%); */
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.3) 0%, transparent 100%);
-}
-
-/* Decorative Elements - Bottom */
-.deco-bottom {
-  position: absolute;
-  bottom: 2rem;
-  left: 4rem;
-  z-index: 2;
-  display: flex;
-  align-items: center;
-  gap: 1.5rem;
-}
-
-.deco-link {
-  font-size: 0.7rem;
-  letter-spacing: 0.1em;
-  color: rgba(0, 0, 0, 0.35);
-  text-transform: uppercase;
-  cursor: pointer;
-  transition: color 0.3s ease;
-}
-
-.deco-link:hover,
-.deco-link.active {
-  color: rgba(0, 0, 0, 0.7);
-}
-
-.deco-line-horizontal {
-  width: 60px;
-  height: 1px;
-  background: rgba(0, 0, 0, 0.25);
-  margin-left: 0.5rem;
-}
-
-/* Decorative Elements - Top Right */
-.deco-top-right {
-  position: absolute;
-  top: 2rem;
-  right: 3rem;
-  z-index: 2;
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.deco-text-small {
-  font-size: 0.6rem;
-  letter-spacing: 0.05em;
-  color: rgba(255, 255, 255, 0.5);
-  text-transform: uppercase;
-}
-
-.deco-text-brand {
-  font-size: 0.7rem;
-  letter-spacing: 0.15em;
-  color: rgba(255, 255, 255, 0.8);
-  font-weight: 600;
-  text-transform: uppercase;
-}
-
-.deco-text-accent {
-  font-size: 0.65rem;
-  letter-spacing: 0.1em;
-  color: rgba(255, 255, 255, 0.6);
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-
-.deco-cross {
-  font-size: 1.2rem;
-  color: rgba(255, 255, 255, 0.4);
-  margin-left: 1rem;
-}
-
-.desktop-services-wrapper {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-}
-
-.services-content {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  width: 100%;
-  height: 100%;
-  align-items: center;
-  justify-content: center;
-}
-
-/* Left Navigation */
-.services-nav {
-  width: 280px;
-  padding: 3rem 2rem 3rem 6rem;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 2rem;
-  flex-shrink: 0;
-}
-
-.nav-header {
-  margin-bottom: 1rem;
-}
-
-.nav-label {
-  font-size: 0.7rem;
-  letter-spacing: 0.3em;
-  /* color: rgba(0, 0, 0, 0.4); */
-  color: rgba(255, 255, 255, 0.4);
-  text-transform: uppercase;
-}
-
-.services-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
-
-.service-item {
-  font-family: 'Manrope', sans-serif;
-  font-size: 0.95rem;
-  font-weight: 300;
-  /* color: rgba(0, 0, 0, 0.4); */
-  color: #fff;
-  cursor: pointer;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  position: relative;
-  padding-left: 0;
-  letter-spacing: 0.02em;
-}
-
-.service-item::before {
-  content: '';
-  position: absolute;
-  left: -1rem;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 2px;
-  height: 0;
-  /* background: #1a1a1a; */
-  background: #fff;
-  transition: height 0.3s ease;
-}
-
-.service-item:hover {
-  /* color: rgba(0, 0, 0, 0.6); */
-  color: #fff;
-}
-
-.service-item.active {
-  /* color: #1a1a1a; */
-  color: #fff;
-  font-weight: 500;
-}
-
-.service-item.active::before {
-  height: 100%;
-}
-
-.social-links {
-  margin-top: auto;
-  display: flex;
-  gap: 1.5rem;
-  padding-top: 3rem;
-  border-top: 1px solid rgba(0, 0, 0, 0.08);
-}
-
-.social-links a {
-  font-size: 0.7rem;
-  font-weight: 300;
-  color: rgba(0, 0, 0, 0.4);
-  text-decoration: none;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  transition: color 0.3s ease;
-}
-
-.social-links a:hover {
-  color: #1a1a1a;
-}
-
-/* Main Content */
-.services-main {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 4rem;
-}
-
-.service-detail {
-  max-width: 600px;
-  position: relative;
-}
-
-.service-title {
-  font-family: 'Coolvetica', sans-serif;
-  font-size: clamp(2.5rem, 5vw, 4rem);
+  right: -0.08em;
+  bottom: -0.34em;
+  font-family: var(--font-display);
+  font-size: clamp(14rem, 34vw, 30rem);
   font-weight: 400;
-  letter-spacing: 0.15em;
-  color: #fff;
-  text-shadow: 0 2px 20px rgba(0, 0, 0, 0.2);
-  margin-bottom: 2rem;
-  line-height: 1.1;
+  line-height: 1;
+  color: var(--c-ghost);
+  pointer-events: none;
+  user-select: none;
 }
 
-.service-description {
-  font-size: 0.95rem;
-  font-weight: 300;
-  line-height: 1.8;
-  color: rgba(255, 255, 255, 0.85);
-  margin-bottom: 1rem;
-  max-width: 450px;
+/* ---- Índice ---- */
+
+.services__nav {
+  display: grid;
+  align-content: start;
+  gap: 2rem;
 }
 
-.service-secondary {
-  font-size: 0.85rem;
-  font-weight: 300;
-  line-height: 1.6;
-  color: rgba(255, 255, 255, 0.6);
-  font-style: italic;
+.services__list {
+  display: grid;
+  gap: 0.25rem;
 }
 
-/* Dots Navigation */
-.dots-nav {
-  position: absolute;
-  right: 3rem;
-  top: 50%;
-  transform: translateY(-50%);
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.3);
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.dot:hover {
-  background: rgba(255, 255, 255, 0.6);
-}
-
-.dot.active {
-  background: #fff;
-  box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
-}
-
-/* Transitions */
-.fade-slide-enter-active,
-.fade-slide-leave-active {
-  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.fade-slide-enter-from {
-  opacity: 0;
-  transform: translateY(30px);
-}
-
-.fade-slide-leave-to {
-  opacity: 0;
-  transform: translateY(-30px);
-}
-
-/* Responsive */
-@media (max-width: 1024px) {
-  .services-content {
-    flex-direction: column;
-  }
-
-  .services-nav {
-    width: 100%;
-    padding: 2rem;
-    order: 2;
-  }
-
-  .services-blur-overlay {
-    width: 100%;
-    height: 60%;
-    bottom: 0;
-    top: auto;
-    backdrop-filter: blur(8px);
-    background: linear-gradient(
-      0deg,
-      rgba(200, 210, 220, 0.7) 0%,
-      rgba(200, 210, 220, 0.4) 70%,
-      transparent 100%
-    );
-  }
-
-  .services-main {
-    order: 1;
-    padding: 2rem;
-  }
-
-  .dots-nav {
-    right: 1rem;
-    top: 30%;
-  }
-}
-
-/* ===== DESKTOP STYLES ===== */
-@media (min-width: 640px) {
-  .mobile-services-container {
-    display: none !important;
-  }
-
-  .desktop-services-wrapper {
-    display: block !important;
-  }
-}
-
-/* ===== MOBILE STYLES ===== */
-@media (max-width: 639px) {
-  .mobile-services-container {
-    display: flex !important;
-  }
-
-  .desktop-services-wrapper {
-    display: none !important;
-  }
-}
-
-/* ===== MOBILE STYLES ===== */
-.mobile-services-container {
+.services__link {
   position: relative;
-  z-index: 10;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: baseline;
+  gap: 0.9rem;
   width: 100%;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  padding: 0;
+  padding: 0.85rem 0;
+  border-top: 1px solid var(--c-line);
+  text-align: left;
+  color: var(--c-muted);
+  transition: color 0.45s var(--ease-out);
+}
+
+.services__item:last-child .services__link {
+  border-bottom: 1px solid var(--c-line);
+}
+
+.services__index {
+  font-size: var(--fs-micro);
+  letter-spacing: 0.12em;
+  color: var(--c-faint);
+  font-variant-numeric: tabular-nums;
+  transition: color 0.45s var(--ease-out);
+}
+
+.services__name {
+  font-size: var(--fs-body);
+  line-height: 1.25;
+  /* El activo pesa más sin mover el resto de la lista. */
+  transition: transform 0.55s var(--ease-out);
+  transform-origin: left center;
+}
+
+.services__link.is-active {
+  color: var(--c-fg);
+}
+
+.services__link.is-active .services__index {
+  color: var(--c-pink);
+}
+
+.services__link.is-active .services__name {
+  transform: translateX(0.35rem);
+}
+
+@media (hover: hover) {
+  .services__link:hover {
+    color: var(--c-fg);
+  }
+
+  .services__link:hover .services__name {
+    transform: translateX(0.35rem);
+  }
+}
+
+/* Avance automático: la línea de arriba del ítem activo se va llenando. */
+.services__rail {
+  position: absolute;
+  inset: -1px 0 auto 0;
+  height: 1px;
   overflow: hidden;
 }
 
-.mobile-header {
-  flex-shrink: 0;
-  width: 100%;
-  padding: 0 1.5rem 2rem;
-  text-align: center;
+.services__fill {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--c-pink), var(--c-magenta));
+  transform: scaleX(0);
+  transform-origin: left;
 }
 
-.header-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+/* ---- Detalle ---- */
+
+.services__stage {
+  position: relative;
+  display: grid;
+  /* Alto fijo: el detalle arriba, los controles abajo. Antes el panel se
+     encogía o crecía según el largo del servicio y la card "saltaba" en cada
+     cambio. Ahora se reserva el alto del servicio más largo y listo. */
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: 2rem;
+  min-height: 26rem;
 }
 
-.header-label {
-  font-size: 0.75rem;
-  letter-spacing: 0.3em;
-  color: rgba(255, 255, 255, 0.4);
+.services__stage > * {
+  align-self: start;
+}
+
+.service {
+  display: grid;
+  gap: 1.25rem;
+  max-width: 34rem;
+}
+
+.service__title {
+  font-family: var(--font-display);
+  font-size: clamp(2.25rem, 1.4rem + 3.2vw, 4.25rem);
+  font-weight: 400;
+  letter-spacing: -0.025em;
+  line-height: 0.98;
   text-transform: uppercase;
-  font-weight: 300;
 }
 
-.header-counter {
-  font-size: 0.95rem;
-  letter-spacing: 0.1em;
-  color: rgba(255, 255, 255, 0.6);
-  font-weight: 300;
+.service__description {
+  color: color-mix(in srgb, var(--c-fg) 78%, transparent);
+  font-size: var(--fs-lead);
+  line-height: 1.5;
 }
 
-.mobile-service-content {
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  animation: fadeInUp 0.5s ease-out;
-  width: 100%;
-  padding: 2rem 1.5rem;
-  text-align: center;
-  height: 30%;
-}
-
-.service-mobile-title {
-  font-family: 'Manrope', sans-serif;
-  font-size: 1.8rem;
-  font-weight: 300;
-  color: #fff;
-  margin: 0 0 1.5rem 0;
-  line-height: 1.3;
-  letter-spacing: 0.02em;
-}
-
-.mobile-service-content .service-description {
-  font-size: 0.95rem;
-  font-weight: 300;
-  line-height: 1.8;
-  color: rgba(255, 255, 255, 0.75);
-  margin: 0 0 1.5rem 0;
-  max-width: 100%;
-}
-
-.mobile-service-content .service-secondary {
-  font-size: 0.85rem;
-  font-weight: 300;
-  line-height: 1.6;
-  color: rgba(255, 255, 255, 0.5);
+.service__note {
+  color: var(--c-faint);
+  font-family: var(--font-serif);
+  font-size: var(--fs-body);
   font-style: italic;
-  margin: 0;
-  max-width: 100%;
+  line-height: 1.6;
 }
 
-.mobile-navigation {
-  flex-shrink: 0;
+.services__controls {
   display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
+  align-self: end;
   align-items: center;
-  width: 100%;
-  padding: 2rem 1.5rem 0;
+  gap: 1rem;
 }
 
-.nav-button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.75rem;
-  background: transparent;
-  border: none;
-  color: rgba(255, 255, 255, 0.5);
-  font-size: 0.8rem;
-  letter-spacing: 0.05em;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  padding: 0.5rem;
-}
-
-.nav-button:hover:not(:disabled) {
-  color: rgba(255, 255, 255, 0.8);
-}
-
-.nav-button:disabled {
-  opacity: 0.3;
-  cursor: not-allowed;
-}
-
-.nav-button svg {
-  width: 16px;
-  height: 16px;
-  stroke-width: 2;
-}
-
-.nav-button.prev {
-  flex-direction: row-reverse;
-}
-
-.dots-container {
-  display: flex;
-  justify-content: center;
-  gap: 0.75rem;
-}
-
-.mobile-services-container .dot {
-  width: 6px;
-  height: 6px;
+.services__arrow {
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border: 1px solid var(--c-line-strong);
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.25);
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  color: var(--c-fg);
+  transition:
+    background-color 0.4s var(--ease-out),
+    color 0.4s var(--ease-out);
 }
 
-.mobile-services-container .dot:hover {
-  background: rgba(255, 255, 255, 0.5);
+.services__arrow svg {
+  width: 1.1rem;
+  height: 1.1rem;
 }
 
-.mobile-services-container .dot.active {
-  background: rgba(255, 150, 190, 0.8);
-  width: 20px;
-  border-radius: 3px;
+.services__arrow:hover {
+  background: var(--c-fg);
+  color: var(--c-on-fg);
 }
 
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
+.services__counter {
+  color: var(--c-faint);
+  font-size: var(--fs-small);
+  letter-spacing: 0.12em;
+  font-variant-numeric: tabular-nums;
+}
+
+.services__counter span {
+  color: var(--c-fg);
+}
+
+/* ---- Mobile ---- */
+
+@media (max-width: 900px) {
+  .services__panel {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2.5rem;
   }
-  to {
-    opacity: 1;
-    transform: translateY(0);
+
+  .services__stage {
+    min-height: 22rem;
+    gap: 1.75rem;
+  }
+
+  .services__ghost {
+    font-size: 16rem;
+    bottom: -0.3em;
   }
 }
 </style>

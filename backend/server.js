@@ -9,9 +9,21 @@ const configRoutes = require('./routes/config')
 
 const app = express()
 
-// Middleware
+const allowedOrigins = (process.env.CORS_ORIGIN || '*')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean)
+
+const isLocalOrigin = (origin) =>
+  /^https?:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin)
+
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || '*',
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes('*') || allowedOrigins.includes(origin) || isLocalOrigin(origin)) {
+      return callback(null, true)
+    }
+    return callback(null, false)
+  },
   credentials: true
 }))
 

@@ -1,457 +1,403 @@
+<script setup>
+/**
+ * Proceso: el recorrido se atraviesa. El panel queda quieto con
+ * `position: sticky` y el scroll vertical desplaza el tren de pasos hacia la
+ * izquierda.
+ *
+ * Sticky y no `pin` por lo mismo que en la sección de la alianza: el pin pone
+ * el panel en `fixed` y, al ser transparente, se superponía con la sección
+ * anterior; además cada remedición del pin hacía saltar la página. Con sticky
+ * el panel no sale nunca de los límites de su sección.
+ *
+ * El alto de la sección es "una pantalla + una pausa + lo que tiene que viajar
+ * el tren" (`--hold` + `--travel`), medido en el DOM y recalculado en cada
+ * refresh. La pausa inicial existe para que el paso 01 quede quieto y completo
+ * en pantalla antes de que el tren arranque: si no, el recorrido empieza en el
+ * mismo instante en que la sección toca el borde de arriba y el primer paso se
+ * pasa sin que se llegue a leer.
+ *
+ * `containerAnimation` es lo que hace que cada paso se encienda al entrar al
+ * centro: mide la posición del paso dentro del desplazamiento horizontal, no
+ * dentro de la página.
+ */
+import { ref } from 'vue'
+import { gsap, splitMasked } from '@/animations/gsap'
+import { useGsap } from '@/composables/useGsap'
+import { useAmbientMood } from '@/composables/useAmbient'
+
+const steps = [
+  {
+    title: 'Diagnóstico',
+    description:
+      'Vemos dónde está tu marca hoy: canales, mensaje, competencia y qué está frenando el crecimiento.',
+  },
+  {
+    title: 'Estrategia',
+    description:
+      'Definimos qué decir, en qué canales, con qué frecuencia y cómo vamos a medir el avance.',
+  },
+  {
+    title: 'Producción',
+    description:
+      'Creamos el contenido, las campañas y las piezas alineadas a esa estrategia. Nada se publica porque sí.',
+  },
+  {
+    title: 'Salimos al aire',
+    description: 'Publicamos, pautamos y respondemos. Vos tenés visibilidad de lo que está pasando.',
+  },
+  {
+    title: 'Medimos y ajustamos',
+    description:
+      'Miramos números, cortamos lo que no rinde y repetimos lo que convierte. El plan se mueve con los datos.',
+  },
+]
+
+/** Cuánta pantalla queda quieta antes de que arranque el tren. */
+const HOLD_RATIO = 0.5
+
+const root = ref(null)
+const stage = ref(null)
+const track = ref(null)
+const activeStep = ref(0)
+const pad = (n) => String(n + 1).padStart(2, '0')
+
+useAmbientMood(root, 'process')
+
+useGsap(root, () => {
+  // El encabezado entra igual en todos los layouts.
+  const title = splitMasked('.process__title')
+  gsap
+    .timeline({
+      scrollTrigger: { trigger: root.value, start: 'top 75%', once: true },
+    })
+    .set('.process__head', { opacity: 1 })
+    .from('.process__head .eyebrow', { opacity: 0, y: 18, duration: 1, ease: 'expo.out' }, 0)
+    .from(title.lines, { yPercent: 115, duration: 1.2, stagger: 0.07, ease: 'expo.out' }, 0.1)
+
+  const mm = gsap.matchMedia()
+
+  mm.add('(min-width: 900px)', () => {
+    const hold = () => Math.round(window.innerHeight * HOLD_RATIO)
+
+    /** Cuánto tiene que viajar el tren, y por lo tanto cuánto mide la sección. */
+    const measure = () => {
+      const travel = Math.max(0, track.value.scrollWidth - stage.value.clientWidth)
+      root.value.style.setProperty('--travel', `${travel}px`)
+      root.value.style.setProperty('--hold', `${hold()}px`)
+      return travel
+    }
+    measure()
+
+    const scrollTween = gsap.to(track.value, {
+      x: () => -measure(),
+      ease: 'none',
+      scrollTrigger: {
+        trigger: root.value,
+        // El recorrido arranca recién después de la pausa, con el panel ya
+        // fijo y el paso 01 entero a la vista.
+        start: () => `top top-=${hold()}`,
+        end: 'bottom bottom',
+        scrub: 0.8,
+        invalidateOnRefresh: true,
+        // El alto de la sección se recalcula antes de que ScrollTrigger mida.
+        onRefreshInit: measure,
+        onUpdate: (self) => {
+          gsap.set('.process__progress', { scaleX: self.progress })
+          activeStep.value = Math.min(steps.length - 1, Math.floor(self.progress * steps.length))
+        },
+      },
+    })
+
+    gsap.utils.toArray('.step').forEach((panel) => {
+      const container = { containerAnimation: scrollTween, trigger: panel }
+
+      gsap.fromTo(
+        panel.querySelector('.step__body'),
+        { opacity: 0.12, y: 44 },
+        {
+          opacity: 1,
+          y: 0,
+          ease: 'power2.out',
+          scrollTrigger: { ...container, start: 'left 80%', end: 'left 40%', scrub: true },
+        },
+      )
+
+      // El número de fondo se mueve más lento: da profundidad al recorrido.
+      gsap.fromTo(
+        panel.querySelector('.step__ghost'),
+        { xPercent: -14 },
+        {
+          xPercent: 14,
+          ease: 'none',
+          scrollTrigger: { ...container, start: 'left right', end: 'right left', scrub: true },
+        },
+      )
+    })
+
+    return () => {
+      root.value?.style.removeProperty('--travel')
+      root.value?.style.removeProperty('--hold')
+    }
+  })
+
+  mm.add('(max-width: 899px)', () => {
+    gsap.fromTo(
+      '.process__guide-fill',
+      { scaleY: 0 },
+      {
+        scaleY: 1,
+        ease: 'none',
+        scrollTrigger: { trigger: '.process__track', start: 'top 70%', end: 'bottom 70%', scrub: true },
+      },
+    )
+
+    gsap.utils.toArray('.step').forEach((panel, i) => {
+      gsap.from(panel.querySelector('.step__body'), {
+        opacity: 0,
+        y: 40,
+        duration: 1,
+        ease: 'expo.out',
+        scrollTrigger: { trigger: panel, start: 'top 82%', once: true, onEnter: () => (activeStep.value = i) },
+      })
+    })
+  })
+})
+</script>
+
 <template>
-  <section id="process" ref="sectionRef" class="how-we-work-section relative overflow-hidden">
-    <!-- Background Gradient -->
-    <div class="absolute inset-0 how-we-work-bg"></div>
-    
-    <!-- Content Container -->
-    <div class="relative z-0 w-full px-8 sm:px-12 lg:px-20">
-      
-      <!-- Header -->
-      <div ref="headerRef" class="header-content mb-20 md:mb-28">
-        <div class="flex items-center gap-3">
-          <div class="w-8 h-px bg-white/20"></div>
-          <span class="section-label">PROCESO</span>
-        </div>
-        <h2 class="section-title text-start ml-0">Cómo trabajamos</h2>
-      </div>
+  <section id="process" ref="root" class="process">
+    <div ref="stage" class="process__stage">
+      <header class="process__head">
+        <p class="eyebrow">Proceso</p>
+        <h2 class="section-title process__title">Cómo trabajamos</h2>
+      </header>
 
-      <!-- Timeline Container -->
-      <div class="timeline-container">
-        
-        <!-- Timeline Line -->
-        <div class="timeline-line">
-          <div ref="lineProgressRef" class="timeline-line-progress"></div>
-        </div>
-
-        <!-- Timeline Items -->
-        <div class="timeline-items">
-          <div 
-            v-for="(step, index) in steps" 
-            :key="step.id"
-            ref="itemRefs"
-            class="timeline-item"
-            :class="{ 'item-top': index % 2 === 0, 'item-bottom': index % 2 !== 0 }"
-          >
-            <!-- Dot -->
-            <div class="timeline-dot">
-              <div class="dot-inner"></div>
-            </div>
-            
-            <!-- Vertical Line -->
-            <div class="vertical-line"></div>
-            
-            <!-- Content Card -->
-            <div class="timeline-card">
-              <!-- Date/Step Label -->
-              <span class="step-label">{{ step.label }}</span>
-              
-              <!-- Title -->
-              <h4 class="step-title">{{ step.title }}</h4>
-              
-              <!-- Description -->
-              <p class="step-description">{{ step.description }}</p>
-            </div>
+      <div ref="track" class="process__track">
+        <!-- Guía de avance de mobile: corre al costado del tren en vertical -->
+        <span class="process__guide" aria-hidden="true"><span class="process__guide-fill" /></span>
+        <article v-for="(step, i) in steps" :key="step.title" class="step" :class="{ 'is-active': i === activeStep }">
+          <span class="step__ghost" aria-hidden="true">{{ pad(i) }}</span>
+          <div class="step__body">
+            <span class="step__index">Paso {{ pad(i) }}</span>
+            <h3 class="step__title">{{ step.title }}</h3>
+            <p class="step__text">{{ step.description }}</p>
           </div>
-        </div>
-
+        </article>
       </div>
 
+      <footer class="process__footer">
+        <div class="process__rail">
+          <span class="process__progress" aria-hidden="true" />
+        </div>
+        <p class="process__counter">
+          <span>{{ pad(activeStep) }}</span> / {{ pad(steps.length - 1) }}
+        </p>
+      </footer>
     </div>
   </section>
 </template>
 
-<script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
-import gsap from 'gsap'
-import { ScrollTrigger } from 'gsap/ScrollTrigger'
-
-gsap.registerPlugin(ScrollTrigger)
-
-const steps = [
-  {
-    id: 1,
-    label: 'Paso 1',
-    title: 'Análisis y diagnóstico',
-    description: 'Relevamiento de marca, contexto y objetivos para entender tu negocio.'
-  },
-  {
-    id: 2,
-    label: 'Paso 2',
-    title: 'Estrategia',
-    description: 'Definición de mensaje, canales y enfoque de comunicación.'
-  },
-  {
-    id: 3,
-    label: 'Paso 3',
-    title: 'Producción',
-    description: 'Desarrollo de contenido alineado a la identidad y estrategia.'
-  },
-  {
-    id: 4,
-    label: 'Paso 4',
-    title: 'Ejecución',
-    description: 'Publicación, gestión y seguimiento continuo.'
-  },
-  {
-    id: 5,
-    label: 'Paso 5',
-    title: 'Optimización',
-    description: 'Análisis de resultados y ajustes continuos para maximizar impacto.'
-  }
-]
-
-// Refs
-const sectionRef = ref(null)
-const headerRef = ref(null)
-const lineProgressRef = ref(null)
-const itemRefs = ref([])
-
-let ctx = null
-
-onMounted(() => {
-  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-  if (prefersReducedMotion) return
-
-  ctx = gsap.context(() => {
-    // Header animation
-    gsap.fromTo(
-      headerRef.value,
-      { opacity: 0, y: 40 },
-      {
-        opacity: 1,
-        y: 0,
-        duration: 1,
-        ease: 'power3.out',
-        scrollTrigger: {
-          trigger: headerRef.value,
-          start: 'top 85%',
-          once: true
-        }
-      }
-    )
-
-    // Line progress animation
-    gsap.fromTo(
-      lineProgressRef.value,
-      { width: '0%' },
-      {
-        width: '100%',
-        ease: 'none',
-        scrollTrigger: {
-          trigger: '.timeline-container',
-          start: 'top 70%',
-          end: 'bottom 50%',
-          scrub: 1
-        }
-      }
-    )
-
-    // Items stagger animation
-    itemRefs.value.forEach((item, index) => {
-      const isTop = index % 2 === 0
-      
-      gsap.fromTo(
-        item,
-        { 
-          opacity: 0, 
-          y: isTop ? -30 : 30 
-        },
-        {
-          opacity: 1,
-          y: 0,
-          duration: 0.8,
-          ease: 'power2.out',
-          scrollTrigger: {
-            trigger: item,
-            start: 'top 85%',
-            once: true
-          }
-        }
-      )
-    })
-
-  }, sectionRef.value)
-})
-
-onUnmounted(() => {
-  if (ctx) ctx.revert()
-})
-</script>
-
 <style scoped>
-.how-we-work-section {
-  min-height: 100vh;
-  padding: 8rem 0;
-  display: flex;
-  align-items: center;
-}
-
-/* Background */
-.how-we-work-bg {
-  background: 
-    radial-gradient(ellipse 80% 60% at 85% 30%, rgba(252, 148, 199, 0.15) 0%, transparent 50%),
-    radial-gradient(ellipse 60% 50% at 90% 50%, rgba(180, 100, 180, 0.12) 0%, transparent 45%),
-    radial-gradient(ellipse 70% 70% at 10% 80%, rgba(252, 148, 199, 0.08) 0%, transparent 50%),
-    linear-gradient(180deg, #000000 0%, #0a0a0a 50%, #000000 100%);
-}
-
-/* Header */
-.header-content {
-  text-align: center;
-}
-
-.section-label {
-  display: block;
-  font-family: 'Manrope', sans-serif;
-  font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: 0.2em;
-  color: rgba(255, 255, 255, 0.5);
-  text-transform: uppercase;
-}
-
-.section-title {
-  font-family: 'COOLVETICA', sans-serif;
-  font-size: clamp(3rem, 8vw, 5rem);
-  font-weight: 400;
-  color: #fff;
-  letter-spacing: -0.02em;
-  line-height: 1.1;
-  margin-top: 1rem;
-}
-
-/* Timeline Container */
-.timeline-container {
+/* Una pantalla quieta + la pausa inicial + lo que viaja el tren.
+   `--hold` y `--travel` los mide el script. */
+.process {
   position: relative;
-  padding: 10rem 0;
+  z-index: var(--z-content);
+  height: calc(100svh + var(--hold, 0px) + var(--travel, 0px));
 }
 
-/* Timeline Line */
-.timeline-line {
-  position: absolute;
-  top: 50%;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: rgba(255, 255, 255, 0.15);
-  transform: translateY(-50%);
-}
-
-.timeline-line-progress {
-  position: absolute;
+.process__stage {
+  position: sticky;
   top: 0;
-  left: 0;
-  height: 100%;
-  width: 0%;
-  background: rgba(255, 255, 255, 0.6);
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: clamp(1.5rem, 1rem + 2vw, 3rem);
+  height: 100svh;
+  padding: calc(var(--header-h) + 2rem) 0 2.5rem;
+  overflow: hidden;
 }
 
-/* Timeline Items */
-.timeline-items {
-  display: flex;
-  justify-content: space-between;
-  position: relative;
-  gap: 2rem;
+.process__head {
+  display: grid;
+  gap: 1rem;
+  padding-inline: var(--gutter);
+  opacity: 0;
 }
 
-.timeline-item {
-  position: relative;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  min-width: 180px;
-}
+/* ---- Tren de pasos ---- */
 
-/* Dot */
-.timeline-dot {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 16px;
-  height: 16px;
-  background: #000;
-  border: 1px solid rgba(255, 255, 255, 0.5);
-  border-radius: 50%;
-  z-index: 10;
+.process__track {
   display: flex;
   align-items: center;
-  justify-content: center;
+  gap: clamp(2rem, 1rem + 4vw, 6rem);
+  /* El primer paso arranca alineado con el título; el último deja aire al
+     final, pero no tanto como para terminar el recorrido con media pantalla
+     vacía. */
+  padding-inline: var(--gutter) 24vw;
+  will-change: transform;
 }
 
-.dot-inner {
-  width: 7px;
-  height: 7px;
-  background: rgba(255, 255, 255, 0.9);
-  border-radius: 50%;
+.step {
+  position: relative;
+  display: grid;
+  gap: 0.75rem;
+  flex: 0 0 auto;
+  width: clamp(18rem, 28vw, 24rem);
 }
 
-/* Vertical Line */
-.vertical-line {
-  position: absolute;
-  left: 50%;
-  width: 1px;
-  height: 80px;
-  background: linear-gradient(
-    to bottom,
-    rgba(255, 255, 255, 0.3),
-    rgba(255, 255, 255, 0.05)
-  );
-  transform: translateX(-50%);
+/* Número gigante: se apoya encima del paso, sin cruzarle el texto. */
+.step__ghost {
+  margin-left: -0.06em;
+  /* El interlineado del número deja mucho aire abajo: se recupera acá. */
+  margin-bottom: -0.18em;
+  font-family: var(--font-display);
+  font-size: clamp(6rem, 11vw, 9.5rem);
+  font-weight: 400;
+  line-height: 0.78;
+  color: transparent;
+  -webkit-text-stroke: 1px var(--step-ghost, color-mix(in srgb, var(--c-fg) 9%, transparent));
+  pointer-events: none;
+  user-select: none;
+  transition: -webkit-text-stroke-color 0.7s var(--ease-out);
 }
 
-.item-top .vertical-line {
-  bottom: 50%;
-  margin-bottom: 8px;
-  background: linear-gradient(
-    to top,
-    rgba(255, 255, 255, 0.3),
-    rgba(255, 255, 255, 0.05)
-  );
+:root[data-theme='light'] .step__ghost {
+  /* Sobre beige, el 9% del texto casi no se ve: el contorno necesita más. */
+  --step-ghost: color-mix(in srgb, var(--c-fg) 16%, transparent);
 }
 
-.item-bottom .vertical-line {
-  top: 50%;
-  margin-top: 8px;
+.step.is-active .step__ghost {
+  -webkit-text-stroke-color: color-mix(in srgb, var(--c-pink) 34%, transparent);
 }
 
-/* Content Card */
-.timeline-card {
-  position: absolute;
-  width: max-content;
-  max-width: 280px;
-  text-align: left;
-  left: 50%;
-  transform: translateX(-50%);
+.step__body {
+  position: relative;
+  display: grid;
+  gap: 0.85rem;
 }
 
-.item-top .timeline-card {
-  bottom: calc(50% + 100px);
-}
-
-.item-bottom .timeline-card {
-  top: calc(50% + 100px);
-}
-
-/* Step Label */
-.step-label {
-  display: block;
-  font-family: 'Manrope', sans-serif;
-  font-size: 0.7rem;
-  font-weight: 500;
-  letter-spacing: 0.05em;
-  color: rgba(255, 255, 255, 0.4);
-  margin-bottom: 0.5rem;
-}
-
-/* Step Title */
-.step-title {
-  font-family: 'Manrope', sans-serif;
-  font-size: 1.15rem;
+.step__index {
+  color: var(--c-faint);
+  font-size: var(--fs-micro);
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.95);
-  margin-bottom: 0.75rem;
-  line-height: 1.3;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  transition: color 0.6s var(--ease-out);
 }
 
-/* Step Description */
-.step-description {
-  font-family: 'Manrope', sans-serif;
-  font-size: 0.9rem;
-  font-weight: 300;
-  color: rgba(255, 255, 255, 0.5);
+.step.is-active .step__index {
+  color: var(--c-pink);
+}
+
+.step__title {
+  font-family: var(--font-display);
+  font-size: clamp(1.75rem, 1.1rem + 1.9vw, 2.75rem);
+  font-weight: 400;
+  letter-spacing: -0.025em;
+  line-height: 1.05;
+}
+
+.step__text {
+  max-width: 34ch;
+  color: var(--c-muted);
+  font-size: var(--fs-body);
   line-height: 1.6;
 }
 
-/* Responsive */
-@media (max-width: 1024px) {
-  .timeline-container {
-    padding: 8rem 0;
-  }
-  
-  .timeline-card {
-    max-width: 200px;
-  }
-  
-  .vertical-line {
-    height: 60px;
-  }
-  
-  .item-top .timeline-card {
-    bottom: calc(50% + 80px);
-  }
-  
-  .item-bottom .timeline-card {
-    top: calc(50% + 80px);
-  }
-  
-  .timeline-item {
-    min-width: 140px;
-  }
+/* Guía vertical: sólo mobile (en desktop el avance lo marca el rail de abajo) */
+.process__guide {
+  display: none;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: var(--gutter);
+  width: 1px;
+  background: var(--c-line);
 }
 
-@media (max-width: 768px) {
-  .how-we-work-section {
-    padding: 4rem 0;
-  }
-  
-  .timeline-container {
-    padding: 2rem 0 0 0;
-  }
-  
-  /* Switch to vertical layout on mobile */
-  .timeline-line {
-    top: 0;
-    bottom: 0;
-    left: 20px;
-    right: auto;
-    width: 1px;
+.process__guide-fill {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(180deg, var(--c-magenta), var(--c-pink));
+  transform: scaleY(0);
+  transform-origin: top;
+}
+
+/* ---- Guía de avance ---- */
+
+.process__footer {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  padding-inline: var(--gutter);
+}
+
+.process__rail {
+  flex: 1;
+  height: 1px;
+  overflow: hidden;
+  background: var(--c-line);
+}
+
+.process__progress {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--c-magenta), var(--c-pink));
+  transform: scaleX(0);
+  transform-origin: left;
+}
+
+.process__counter {
+  color: var(--c-faint);
+  font-size: var(--fs-small);
+  letter-spacing: 0.12em;
+  font-variant-numeric: tabular-nums;
+}
+
+.process__counter span {
+  color: var(--c-fg);
+}
+
+/* ---- Mobile: el mismo recorrido, en vertical ---- */
+
+@media (max-width: 899px) {
+  .process {
     height: auto;
-    transform: none;
   }
-  
-  .timeline-line-progress {
-    width: 100%;
-    height: 0%;
+
+  .process__stage {
+    position: static;
+    height: auto;
+    padding-block: var(--section-space) 4rem;
+    overflow: visible;
   }
-  
-  .timeline-items {
+
+  .process__track {
+    position: relative;
     flex-direction: column;
-    gap: 3rem;
-    padding-left: 60px;
+    align-items: stretch;
+    gap: 3.5rem;
+    padding-inline: var(--gutter);
+    padding-left: calc(var(--gutter) + 2.5rem);
   }
-  
-  .timeline-item {
-    align-items: flex-start;
+
+  .step {
+    width: auto;
   }
-  
-  .timeline-dot {
-    left: -40px;
-    top: 0;
-    transform: translate(-50%, 0);
+
+  .step__ghost {
+    font-size: 6rem;
+    /* A este cuerpo el número ya no necesita meterse sobre el texto. */
+    margin-bottom: 0;
   }
-  
-  .vertical-line {
+
+  .process__footer {
     display: none;
   }
-  
-  .timeline-card {
-    position: relative;
-    left: 0;
-    top: 0;
-    bottom: auto;
-    transform: none;
-    max-width: 100%;
-  }
-  
-  .item-top .timeline-card,
-  .item-bottom .timeline-card {
-    position: relative;
-    left: 0;
-    top: 0;
-    bottom: auto;
-    transform: none;
+
+  .process__guide {
+    display: block;
   }
 }
 </style>

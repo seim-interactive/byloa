@@ -1,0 +1,8 @@
+# ByLoa — https://byloa.agency
+User-agent: *
+Allow: /
+# Panel interno: no tiene nada que indexar
+Disallow: /admin
+Disallow: /login
+
+Sitemap: https://byloa.agency/sitemap.xml

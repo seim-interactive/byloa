@@ -5,6 +5,7 @@ import router from './router'
 import Toast from 'vue-toastification'
 import 'vue-toastification/dist/index.css'
 import 'bootstrap-icons/font/bootstrap-icons.css'
+import { vMagnetic } from './directives/magnetic'
 
 const app = createApp(App)
 
@@ -33,6 +34,7 @@ app.component('ClientOnly', {
   }
 })
 
+app.directive('magnetic', vMagnetic)
 app.use(router)
 
 // Wait for router to be ready before mounting

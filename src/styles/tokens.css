@@ -1,0 +1,213 @@
+/**
+ * Design tokens de ByLoa.
+ * Una sola fuente de verdad para color, tipografía, ritmo y movimiento.
+ * Las secciones no definen colores propios: usan estas variables.
+ *
+ * Temas: el oscuro es el de base (`:root`) y el claro pisa sólo los colores
+ * con `[data-theme='light']`. El atributo lo pone un script en index.html
+ * antes de pintar, así no hay parpadeo al cargar.
+ */
+:root {
+  color-scheme: dark;
+
+  /* ---- Color ---- */
+  --c-bg: #050505;
+  --c-fg: #f5f2ed;                    /* beige de marca */
+  --c-muted: rgb(245 242 237 / 0.55);
+  --c-faint: rgb(245 242 237 / 0.32);
+  --c-line: rgb(245 242 237 / 0.12);
+  --c-line-strong: rgb(245 242 237 / 0.24);
+
+  /* Texto sobre un botón relleno con --c-fg */
+  --c-on-fg: #0a0a0a;
+  /* Tintes muy suaves del color de texto: fondos de cápsulas, números gigantes */
+  --c-tint: color-mix(in srgb, var(--c-fg) 5%, transparent);
+  --c-tint-strong: color-mix(in srgb, var(--c-fg) 10%, transparent);
+  --c-ghost: color-mix(in srgb, var(--c-fg) 4%, transparent);
+  /* Barra de navegación con vidrio y menú a pantalla completa */
+  --c-header-bg: rgb(5 3 8 / 0.55);
+  --c-overlay-bg: rgb(5 3 8 / 0.93);
+
+  /* Acentos de marca */
+  --c-pink: #fc94c7;
+  --c-magenta: #f46ebb;
+  --c-violet: #8b5cf6;
+  --c-lavender: #c9a8f0;
+
+  /* Vidrio: una sola receta para todo el sitio */
+  --glass-bg: linear-gradient(135deg, rgb(245 242 237 / 0.07), rgb(245 242 237 / 0.02));
+  --glass-border: rgb(245 242 237 / 0.12);
+  --glass-blur: blur(20px) saturate(1.2);
+
+  /* Los logos en PNG están hechos para fondo oscuro (beige o blancos). */
+  --logo-filter: none;
+  /* Fotos y videos en reposo: apagados, la que se mira gana color. */
+  --media-rest: brightness(0.62) saturate(0.85);
+
+  /* ---- Tipografía ---- */
+  /* Sólo tipografías de marca: Coolvetica para todo y Cambria para los
+     acentos en itálica. Manrope no es del manual y quedó fuera. */
+  --font-display: 'Coolvetica', system-ui, sans-serif;
+  --font-sans: 'Coolvetica', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-serif: 'Cambria', Georgia, 'Times New Roman', serif;
+
+  --fs-micro: 0.6875rem;
+  --fs-small: 0.8125rem;
+  --fs-body: clamp(0.95rem, 0.9rem + 0.2vw, 1.0625rem);
+  --fs-lead: clamp(1.0625rem, 1rem + 0.45vw, 1.375rem);
+  --fs-h3: clamp(1.35rem, 1.1rem + 1vw, 2rem);
+  --fs-h2: clamp(2.4rem, 1.4rem + 3.8vw, 5.25rem);
+  --fs-display: clamp(3rem, 1rem + 9vw, 9rem);
+
+  /* ---- Layout ---- */
+  --gutter: clamp(1.25rem, 0.6rem + 3vw, 5rem);
+  --section-space: clamp(6rem, 4rem + 9vw, 12rem);
+  --header-h: 5rem;
+  --radius: 20px;
+  --radius-lg: 28px;
+
+  /* ---- Movimiento ---- */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.76, 0, 0.24, 1);
+
+  /* ---- Capas ---- */
+  --z-ambient: 0;
+  --z-content: 10;
+  --z-header: 100;
+}
+
+/* ---- Tema claro ----
+   Fondo beige de marca y texto casi negro con un toque violeta. Los rosas se
+   oscurecen: sobre beige, el rosa del tema oscuro no llega a contraste en los
+   textos chicos (índices, etiquetas). */
+:root[data-theme='light'] {
+  color-scheme: light;
+
+  --c-bg: #f5f2ed;
+  --c-fg: #16121a;
+  --c-muted: rgb(22 18 26 / 0.64);
+  --c-faint: rgb(22 18 26 / 0.44);
+  --c-line: rgb(22 18 26 / 0.1);
+  --c-line-strong: rgb(22 18 26 / 0.2);
+
+  --c-on-fg: #f5f2ed;
+  --c-header-bg: rgb(245 242 237 / 0.72);
+  --c-overlay-bg: rgb(245 242 237 / 0.95);
+
+  --c-pink: #d4448f;
+  --c-magenta: #c02f80;
+  --c-lavender: #7d55c4;
+
+  --glass-bg: linear-gradient(135deg, rgb(255 255 255 / 0.62), rgb(255 255 255 / 0.3));
+  --glass-border: rgb(22 18 26 / 0.08);
+
+  /* Invertir pasa el beige a casi negro y el gris del asterisco a gris
+     oscuro: queda igual que la versión "positivo" del manual. */
+  --logo-filter: invert(1);
+  --media-rest: brightness(0.94) saturate(0.92);
+}
+
+/* Contenido apoyado sobre fotos o capturas (etiquetas de cards, la card de
+   disponibilidad): sigue en claro sobre oscuro en los dos temas, porque lo
+   que tiene detrás es una imagen y no el fondo de la página. */
+.on-media {
+  --c-fg: #f5f2ed;
+  --c-muted: rgb(245 242 237 / 0.62);
+  --c-faint: rgb(245 242 237 / 0.4);
+  --c-line: rgb(245 242 237 / 0.14);
+  --c-line-strong: rgb(245 242 237 / 0.26);
+  --c-on-fg: #0a0a0a;
+  --c-pink: #fc94c7;
+  color: var(--c-fg);
+}
+
+.logo-adapt {
+  filter: var(--logo-filter);
+}
+
+/* Cortina del cambio de tema (ver useTheme). El contenedor recorta el disco
+   al tamaño de la pantalla; el disco se anima sólo con transform. */
+.theme-curtain {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.theme-curtain__disc {
+  position: absolute;
+  border-radius: 50%;
+  transform: scale(0.001);
+  will-change: transform;
+}
+
+/* Asterisco de marca en el centro de la cortina. El PNG es la versión beige
+   para fondo oscuro; yendo a claro se invierte (queda como la versión
+   "positivo" del manual). El filtro es fijo: lo que se anima es transform. */
+.theme-curtain__mark {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: clamp(5.5rem, 14vmin, 9.5rem);
+  height: auto;
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.35);
+  will-change: transform, opacity;
+}
+
+.theme-curtain[data-to='light'] .theme-curtain__mark {
+  filter: invert(1);
+}
+
+/* Mientras la cortina tapa la pantalla, el tema cambia de una vez: sin
+   transiciones, para que no quede ningún color a mitad de camino al destapar. */
+.theme-switching *,
+.theme-switching *::before,
+.theme-switching *::after {
+  transition: none !important;
+}
+
+/* Etiqueta de sección. Sin rayita ni viñeta al costado: sólo la palabra. */
+.eyebrow {
+  display: block;
+  color: var(--c-faint);
+  font-family: var(--font-sans);
+  font-size: var(--fs-micro);
+  font-weight: 600;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+}
+
+/* Título de sección */
+.section-title {
+  max-width: 16ch;
+  font-family: var(--font-display);
+  font-size: var(--fs-h2);
+  font-weight: 400;
+  letter-spacing: -0.03em;
+  line-height: 0.98;
+}
+
+.section-title em {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-weight: 400;
+  color: var(--c-muted);
+}
+
+/* Superficie de vidrio reutilizable */
+.glass {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+}
+
+/* Las secciones apoyadas sobre el fondo ambiental no llevan color propio */
+.section {
+  position: relative;
+  z-index: var(--z-content);
+  padding: var(--section-space) var(--gutter);
+}

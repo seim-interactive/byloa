@@ -7,7 +7,7 @@
     <nav class="fixed top-0 left-0 right-0 z-50 border-b border-white/10 backdrop-blur-md bg-black/30">
       <div class="max-w-7xl mx-auto px-8 sm:px-12 lg:px-20 py-6 flex items-center justify-between">
         <img
-          src="/public/logotipos_logotipodescriptorv1 negativo.png"
+          src="/logotipos_logotipodescriptorv1 negativo.png"
           alt="ByLoa Admin"
           class="h-8 w-auto object-contain"
         />
