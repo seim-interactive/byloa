@@ -181,6 +181,13 @@ useGsap(root, () => {
   grid-template-rows: minmax(0, 1fr) auto;
   overflow: hidden;
   border: 1px solid var(--glass-border);
+  /* Safari no recorta con `overflow` + `border-radius` a los hijos con
+     filtro o capa propia (más mientras la card se anima al entrar): la foto
+     de fondo asomaba como un rectángulo detrás de la card. `clip-path` con
+     el mismo radio sí lo respeta, e `isolation` evita que la foto se mezcle
+     en una capa aparte. */
+  clip-path: inset(0 round var(--radius-lg));
+  isolation: isolate;
 }
 
 .card__title {
@@ -293,8 +300,9 @@ useGsap(root, () => {
   position: absolute;
   inset: 0;
   background: url('/I_want_a_2k_202601262319.jpeg') center / cover;
-  /* La foto queda como textura detrás del vidrio, no como fondo protagonista. */
-  filter: blur(2px) saturate(1.1);
+  /* La foto queda como textura detrás del vidrio, no como fondo protagonista.
+     Sin `filter`: era lo que hacía que Safari no la recortara a las esquinas
+     redondeadas. La foto ya es suave; alcanza con bajarle la opacidad. */
   opacity: 0.5;
 }
 

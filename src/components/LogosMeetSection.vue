@@ -17,7 +17,7 @@
  *   0.66 → 1.00   el texto se revela línea por línea
  */
 import { ref } from 'vue'
-import { gsap, SplitText } from '@/animations/gsap'
+import { gsap, isTouchDevice, SplitText } from '@/animations/gsap'
 import { useGsap } from '@/composables/useGsap'
 import { useAmbientMood } from '@/composables/useAmbient'
 
@@ -88,13 +88,25 @@ useGsap(root, () => {
   const title = SplitText.create('.alliance__title', { type: 'lines' })
   const lead = SplitText.create('.alliance__lead', { type: 'lines' })
 
-  gsap
-    .timeline({
-      // Arranca cuando la sección todavía está entrando (no recién cuando
-      // toca arriba): los logos ya vienen viajando y no hay un tramo de
-      // pantalla vacía antes del encuentro.
-      scrollTrigger: { trigger: root.value, start: 'top 70%', end: 'bottom bottom', scrub: 0.7 },
-    })
+  // En celulares la secuencia no va atada al scroll: se reproduce sola, una
+  // vez, cuando la sección aparece. En iOS el scroll con inercia corre en un
+  // hilo aparte y JavaScript siempre llega un cuadro tarde; con el panel fijo
+  // y todo movido por el scroll, el contenido se reacomodaba a saltitos y la
+  // pantalla titilaba. Con mouse o trackpad no pasa: ahí sigue el scrub.
+  const touch = isTouchDevice()
+  const timeline = gsap.timeline({
+    scrollTrigger: touch
+      ? { trigger: '.alliance__lockup', start: 'top 85%', once: true }
+      : // Arranca cuando la sección todavía está entrando (no recién cuando
+        // toca arriba): los logos ya vienen viajando y no hay un tramo de
+        // pantalla vacía antes del encuentro.
+        { trigger: root.value, start: 'top 70%', end: 'bottom bottom', scrub: 0.7 },
+  })
+  // La línea de tiempo está escrita en fracciones de 0 a 1: en mobile dura
+  // ~2,8 segundos.
+  if (touch) timeline.timeScale(0.38)
+
+  timeline
     .fromTo(
       '.alliance__logo--byloa',
       { x: offscreen(-1), rotate: -9, scale: 0.78, opacity: 0 },
@@ -239,6 +251,10 @@ useGsap(root, () => {
 /* Trenza entre los dos logos. Los colores van por variables para que el
    tema claro use sus versiones más oscuras. */
 .braid {
+  /* Capa propia: el brillo y el pulso se animan sin parar, y así su repintado
+     no arrastra al resto del panel. Sin filtros SVG (drop-shadow): se repintan
+     enteros en cada cuadro y en Safari mobile hacían titilar la sección. */
+  will-change: transform;
   width: clamp(7rem, 2rem + 17vw, 22rem);
   height: auto;
   overflow: visible;
@@ -285,12 +301,10 @@ useGsap(root, () => {
   stroke-linecap: round;
   stroke-dasharray: 0.07 0.93;
   opacity: 0;
-  filter: drop-shadow(0 0 3px var(--c-pink));
   animation: braid-flow 2.6s linear infinite;
 }
 
 .braid__flow--seim {
-  filter: drop-shadow(0 0 3px var(--c-lavender));
   animation-delay: -1.3s;
 }
 
@@ -298,7 +312,6 @@ useGsap(root, () => {
    oscura): va en magenta. */
 :root[data-theme='light'] .braid__flow {
   stroke: var(--c-magenta);
-  filter: none;
 }
 
 @keyframes braid-flow {
@@ -319,7 +332,6 @@ useGsap(root, () => {
 .braid__core {
   fill: var(--c-pink);
   opacity: 0;
-  filter: drop-shadow(0 0 6px var(--c-pink));
 }
 
 .braid__pulse {
@@ -411,7 +423,25 @@ useGsap(root, () => {
   .alliance {
     height: 185svh;
   }
+}
 
+/* Táctiles: sin panel fijo ni recorrido (la secuencia se reproduce sola, ver
+   el script). La sección mide lo que mide su contenido. */
+@media (pointer: coarse) {
+  .alliance {
+    height: auto;
+  }
+
+  .alliance__stage {
+    position: relative;
+    height: auto;
+    min-height: 0;
+    /* Arriba poco: la cinta de Proyectos ya deja su aire. */
+    padding-block: clamp(2.5rem, 1.5rem + 4vw, 4rem) var(--section-space);
+  }
+}
+
+@media (max-width: 900px) {
   .alliance__stage {
     gap: 2rem;
   }
